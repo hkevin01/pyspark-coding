@@ -1,0 +1,11 @@
+order_id,customer_id,product_name,quantity,price,order_date,status
+101,1,Laptop,1,999.99,2023-06-10,completed
+102,2,Mouse,2,25.50,2023-06-11,completed
+103,1,Keyboard,1,75.00,2023-06-12,completed
+104,3,Monitor,1,299.99,2023-06-13,pending
+105,4,Headphones,1,149.99,2023-06-14,completed
+106,5,Webcam,1,89.99,2023-06-15,completed
+107,2,USB Cable,3,12.99,2023-06-16,cancelled
+108,6,Laptop Stand,1,45.00,2023-06-17,completed
+109,7,External SSD,1,179.99,2023-06-18,pending
+110,8,Wireless Charger,2,35.00,2023-06-19,completed

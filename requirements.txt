@@ -1,0 +1,36 @@
+# Core PySpark
+pyspark==3.5.0
+
+# Data Processing
+pandas==2.1.4
+numpy==1.26.2
+pyarrow==14.0.1
+
+# Testing
+pytest==7.4.3
+pytest-cov==4.1.0
+pytest-spark==0.6.0
+chispa==0.9.4
+
+# Code Quality
+black==23.12.1
+flake8==7.0.0
+pylint==3.0.3
+mypy==1.8.0
+isort==5.13.2
+
+# Utilities
+python-dotenv==1.0.0
+pyyaml==6.0.1
+
+# Database Connectors (optional)
+psycopg2-binary==2.9.9
+pymongo==4.6.1
+
+# Notebooks
+ipykernel==6.28.0
+jupyter==1.0.0
+notebook==7.0.6
+
+# Development
+pre-commit==3.6.0
