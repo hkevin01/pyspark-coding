@@ -289,17 +289,31 @@ Problem: Unbalanced Key Distribution
 └─────────────────────────────────────────────────────────────────┘
 
 Skew Mitigation: Salting
-# Add random salt to split hot keys
+# SALTING: Two-stage aggregation to handle skewed keys
+# =====================================================
+# Problem: user_id="whale_user" has 10M transactions (90% of data)
+#          Other users have 1-100 transactions each
+#          Single partition gets overloaded with whale_user data
+#
+# Solution: Split whale_user into 10 sub-keys for parallel processing
+
 from pyspark.sql.functions import concat, lit, rand
 
+# STAGE 1: Add random salt to create sub-keys
 df_salted = df.withColumn("salt", (rand() * 10).cast("int")) \\
     .withColumn("salted_key", concat(col("user_id"), lit("_"), col("salt")))
+# Example transformation:
+#   user_id="whale_user" → "whale_user_0", "whale_user_1", ..., "whale_user_9"
+#   Each sub-key gets ~1M transactions (10M / 10)
+#   Now 10 partitions can process whale_user in parallel!
 
-# First aggregation with salt
+# STAGE 2: Partial aggregation (happens in parallel across 10 partitions)
 partial = df_salted.groupBy("salted_key") \\
     .agg(sum("amount").alias("partial_sum"))
+# Result: 10 partial sums for whale_user:
+#   {"whale_user_0": 500K, "whale_user_1": 480K, ..., "whale_user_9": 510K}
 
-# Remove salt and final aggregation
+# STAGE 3: Remove salt and final aggregation (combines partial sums)
 final = partial.withColumn("user_id", 
     split(col("salted_key"), "_")[0]) \\
     .groupBy("user_id") \\

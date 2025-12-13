@@ -560,6 +560,37 @@ def demonstrate_skew_handling(spark):
     print("\n✅ Solution: Salting Technique")
     from pyspark.sql.functions import concat, lit, rand
 
+    # SALTING EXPLAINED:
+    # ==================
+    # Problem: "popular" category has 90% of data → One partition is overloaded
+    # Solution: Split the hot key into multiple keys using random "salt"
+    #
+    # How it works:
+    # 1. rand() generates random number between 0.0 and 1.0 for each row
+    # 2. Multiply by N (here 4) to get range [0.0, 4.0)
+    # 3. Cast to int to get discrete values: 0, 1, 2, 3
+    # 4. Append salt to key: "popular" becomes "popular_0", "popular_1", "popular_2", "popular_3"
+    # 5. Now "popular" is split across 4 partitions instead of 1!
+    #
+    # Example transformation:
+    #   Original:  category="popular" (90% of data in one partition)
+    #   Salted:    "popular_0", "popular_1", "popular_2", "popular_3"
+    #   Result:    Each partition gets ~22.5% of data (90% / 4)
+    #
+    # Why rand() works:
+    # - Random distribution ensures even split across salt values
+    # - Each row independently gets random salt (0-3)
+    # - Over large dataset, ~25% of rows get each salt value
+    # - Hash partitioning on salted key distributes evenly
+    #
+    # Trade-off:
+    # - Pros: Balanced partitions, better parallelism, faster execution
+    # - Cons: Need extra aggregation step to remove salt later (if needed)
+    #
+    # When to use:
+    # - Skewed groupBy (one key has majority of data)
+    # - Skewed joins (hot keys cause stragglers)
+    # - Uneven partition sizes visible in Spark UI
     df_salted = df_skewed.withColumn(
         "salted_category", concat(col("category"), lit("_"), (rand() * 4).cast("int"))
     )

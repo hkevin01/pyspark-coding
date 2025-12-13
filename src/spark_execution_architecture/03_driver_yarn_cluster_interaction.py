@@ -496,9 +496,30 @@ HOW TO DETECT SKEW:
 HOW TO FIX SKEW:
 ----------------
 1. Salting (Add random key):
+   # SALTING TECHNIQUE: Distribute hot keys across multiple partitions
+   # ================================================================
+   # Problem: "USA" key has 99% of data → One executor is overwhelmed
+   # Solution: Split "USA" into "USA_0", "USA_1", ..., "USA_9"
+   #
+   # Step 1: Add random salt (0-9)
    df = df.withColumn("salt", (rand() * 10).cast("int"))
+   #   rand() generates [0.0, 1.0) → multiply by 10 → [0.0, 10.0)
+   #   cast to int → {0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
+   #   Each row randomly assigned a salt value
+   #
+   # Step 2: Partial aggregation WITH salt (distributes work)
    df = df.groupBy("country", "salt").agg(...)
-   df = df.groupBy("country").agg(...)  # Final aggregation
+   #   "USA" now processed in 10 parallel partitions!
+   #   "USA_0", "USA_1", ..., "USA_9" each on different executor
+   #
+   # Step 3: Final aggregation WITHOUT salt (combines results)
+   df = df.groupBy("country").agg(...)  # Recombines USA_0 + USA_1 + ... = USA
+   #
+   # Performance Impact:
+   #   Before: 1 executor does 99% of work, others idle
+   #   After: 10 executors share work evenly → 10x faster!
+   #
+   # Trade-off: Two-stage aggregation required (vs one-stage without salt)
 
 2. Adaptive Query Execution (AQE) - Spark 3.0+:
    spark.conf.set("spark.sql.adaptive.enabled", "true")
