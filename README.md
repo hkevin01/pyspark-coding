@@ -297,10 +297,28 @@ pyspark-coding/
 │   │   ├── basic_etl_pipeline.py  # Standard batch ETL
 │   │   └── advanced_etl.py        # ML-enhanced ETL
 │   │
+│   ├── cluster_computing/         # ⭐ NEW: Distributed Spark Patterns
+│   │   ├── 01_cluster_setup.py            # YARN, K8s, Standalone setup
+│   │   ├── 02_data_partitioning.py        # Partition strategies, salting
+│   │   ├── 03_distributed_joins.py        # Broadcast joins, skew handling
+│   │   ├── 04_aggregations_at_scale.py    # Window functions, approximate aggs
+│   │   ├── 05_fault_tolerance.py          # Checkpointing, lineage, recovery
+│   │   ├── 06_gpu_accelerated_udfs.py     # PyTorch/TensorFlow GPU inference
+│   │   ├── 07_resource_management.py      # Memory, CPU, dynamic allocation
+│   │   ├── 08_shuffle_optimization.py     # Minimize shuffles, AQE, bucketing
+│   │   ├── 09_cluster_monitoring.py       # Spark UI, metrics, debugging
+│   │   ├── README.md              # Cluster computing guide
+│   │   ├── QUICKSTART.md          # Getting started
+│   │   ├── GPU_QUICKSTART.md      # GPU acceleration guide
+│   │   └── FINAL_SUMMARY.md       # Complete package overview
+│   │
 │   ├── pyspark_pytorch/           # PySpark + PyTorch integration
-│   │   ├── inference_pipeline.py  # Distributed ML inference
-│   │   ├── model_training.py      # Train models on Spark data
-│   │   └── embedding_generator.py # Feature extraction
+│   │   ├── 01_dataframe_to_tensor.py      # Convert DataFrames to tensors
+│   │   ├── 02_feature_engineering_training.py  # ML pipeline
+│   │   ├── 03_distributed_inference.py    # Batch inference at scale
+│   │   ├── 04_image_embeddings.py         # ResNet/CLIP embeddings
+│   │   ├── 05_time_series_forecasting.py  # LSTM/Transformer forecasting
+│   │   └── README.md              # PyTorch integration guide
 │   │
 │   ├── udf_examples/              # User-Defined Functions (UDFs)
 │   │   ├── 01_basic_batch_inference.py    # PyTorch batch inference
@@ -311,7 +329,8 @@ pyspark-coding/
 │   │   ├── 07_fraud_detection_udf.py      # Real-time fraud
 │   │   ├── README.md              # UDF architecture guide
 │   │   ├── SQL_DATABASE_UDF_GUIDE.md # PostgreSQL/BigQuery/Snowflake
-│   │   └── QUICKSTART.md          # 5-minute getting started
+│   │   ├── QUICKSTART.md          # 5-minute getting started
+│   │   └── run_all_examples.py    # Run all UDF examples
 │   │
 │   ├── readers/                   # Data reading utilities
 │   │   ├── data_reader.py         # Multi-format reader
@@ -358,9 +377,15 @@ pyspark-coding/
 │       └── fraud_detector.pth
 │
 ├── docs/                          # Documentation
+│   ├── cloud_providers_compute_comparison.md  # ⭐ AWS/GCP/Azure comparison
+│   ├── gpu_vs_cpu_decision_matrix.md  # ⭐ GPU vs CPU guide
 │   ├── etl_pipelines_framework_comparison.md  # Pandas vs PySpark
-│   ├── architecture.md            # System architecture
-│   └── best_practices.md          # Coding standards
+│   ├── pyspark_cheatsheet.md      # Quick reference
+│   ├── pyspark_overview.md        # PySpark fundamentals
+│   ├── pandas_to_pyspark.md       # Migration guide
+│   ├── pyspark_pytorch_pandas_integration.md  # ML integration
+│   ├── interview_questions.md     # Practice questions
+│   └── quick_decision_matrix.md   # Framework selection
 │
 ├── config/                        # Configuration files
 │   ├── spark_config.yaml          # Spark settings
@@ -383,12 +408,13 @@ pyspark-coding/
 
 | Directory | Purpose | Key Files | Usage |
 |-----------|---------|-----------|-------|
+| **src/cluster_computing/** | ⭐ Distributed Spark patterns | `01-09_*.py` | Production cluster examples |
 | **src/etl/** | ETL pipeline templates | `basic_etl_pipeline.py` | Copy for new pipelines |
 | **src/udf_examples/** | ML inference patterns | `07_fraud_detection_udf.py` | Interview examples |
-| **src/pyspark_pytorch/** | ML integration | `inference_pipeline.py` | Production ML patterns |
+| **src/pyspark_pytorch/** | ML integration | `01-05_*.py` | PyTorch + PySpark |
 | **tests/** | Quality assurance | `test_*.py` | Run with pytest |
 | **notebooks/** | Interactive development | `*.ipynb` | Jupyter experiments |
-| **docs/** | Technical guides | `*.md` | Architecture reference |
+| **docs/** | Technical guides | `*.md` | Architecture & cloud guides |
 | **config/** | Environment settings | `*.yaml` | Deployment configs |
 
 ---
