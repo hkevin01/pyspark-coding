@@ -26,7 +26,7 @@
 │  │  SparkContext / SparkSession                             │  │
 │  │  • Creates DAG (Directed Acyclic Graph)                  │  │
 │  │  • Schedules tasks                                       │  │
-│  │  │  • Monitors executors                                    │  │
+│  │  • Monitors executors                                    │  │
 │  │  • Collects results                                      │  │
 │  └────────────────┬─────────────────────────────────────────┘  │
 └───────────────────┼────────────────────────────────────────────┘
@@ -1614,24 +1614,19 @@ Savings: 92% cheaper ($2,129/month saved)!
 
 ## 📚 Additional Resources
 
-**Practice Projects:**
-1. Build ETL pipeline processing 100GB CSV → Parquet
-2. Implement real-time streaming dashboard (Kafka → Spark → Dashboard)
-3. Deploy ML model with Pandas UDF for batch inference
-4. Optimize slow join (10-minute → 30-second with broadcast/salting)
+**Practice Exercises:**
+1. ETL pipeline: Process 100GB CSV → Parquet with transformations
+2. Streaming: Kafka source → windowed aggregations → sink
+3. ML inference: Deploy PyTorch model using Pandas UDF (batch processing)
+4. Optimization: Profile slow join, apply broadcast/salting techniques
 
-**Recommended Reading:**
-- Spark: The Definitive Guide (Chambers & Zaharia)
-- High Performance Spark (Karau & Warren)
-- Learning Spark, 2nd Edition (Damji et al.)
-
-**Online Resources:**
-- Official Spark Documentation: https://spark.apache.org/docs/latest/
-- Databricks Blog: https://databricks.com/blog
-- Spark UI Guide: https://spark.apache.org/docs/latest/web-ui.html
+**Reference Documentation:**
+- Apache Spark Official Docs: https://spark.apache.org/docs/latest/
+- Spark SQL Programming Guide
+- Structured Streaming Guide
+- Performance Tuning Guide
+- Spark UI and Monitoring
 
 ---
 
-**Last Updated:** December 2024  
-**Version:** 1.0.0  
-**License:** MIT
+**Last Updated:** December 2024
