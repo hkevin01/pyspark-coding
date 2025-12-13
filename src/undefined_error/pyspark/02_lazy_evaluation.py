@@ -294,67 +294,177 @@ def safe_with_caching():
     # The first action will trigger computation AND caching
     expensive_df.cache()
 
+    # ========================================================================
+    # STEP 4: Execute multiple actions WITH caching
+    # ========================================================================
+    # Action 1: Triggers full computation AND stores result in cache
     start = time.time()
     count = expensive_df.count()
     time1 = time.time() - start
 
+    # Action 2: Reads from cache (fast!)
     start = time.time()
     total = expensive_df.agg({"squared": "sum"}).collect()[0][0]
     time2 = time.time() - start
 
+    # Action 3: Also reads from cache (fast!)
     start = time.time()
     max_val = expensive_df.agg({"cubed": "max"}).collect()[0][0]
     time3 = time.time() - start
 
+    # ========================================================================
+    # STEP 5: Display performance metrics
+    # ========================================================================
     print(f"   Count: {count} (took {time1:.2f}s)")
     print(f"   Sum: {total} (took {time2:.2f}s)")
     print(f"   Max: {max_val} (took {time3:.2f}s)")
     print(f"   Total time: {time1 + time2 + time3:.2f}s")
     print("   ✅ Computation done once, cached for subsequent actions!")
+    print("   ✅ Check Spark UI Storage tab to see cached DataFrame")
 
+    # ========================================================================
+    # STEP 6: Cleanup - free memory
+    # ========================================================================
+    # 📝 NOTE: Always unpersist when done to free executor memory
     expensive_df.unpersist()
     spark.stop()
 
 
-# =============================================================================
+# ============================================================================
 # DANGEROUS PATTERN 2: Transformations Without Actions
-# =============================================================================
+# ============================================================================
 
 
 def dangerous_no_action():
     """
-    ⚠️ UNDEFINED BEHAVIOR: Transformations without triggering action.
+    ============================================================================
+    ❌ DANGEROUS: Transformations Without Triggering Actions
+    ============================================================================
 
-    PROBLEM: Code appears to run but does nothing.
-    RESULT: Silent failures, no actual work performed.
+    WHAT THIS DEMONSTRATES:
+    -----------------------
+    Shows how Spark's lazy evaluation can lead to silent failures when
+    transformations are defined but never executed. Code runs without errors
+    but performs NO actual computation.
+
+    THE PROBLEM:
+    ------------
+    Transformations (filter, withColumn, select, join, groupBy) are LAZY:
+    - They don't execute immediately
+    - They only build an execution plan (DAG)
+    - Without an action, the plan is never executed
+
+    This means: df.filter(...).select(...) does absolutely NOTHING by itself!
+
+    WHY IT FAILS:
+    -------------
+    1. User writes transformation code
+    2. Code executes instantly (no errors)
+    3. User assumes work is done
+    4. But NO computation happened - only plan was created
+    5. Results are never materialized
+
+    REAL-WORLD SCENARIO:
+    --------------------
+    You write a data cleaning pipeline:
+    - Remove nulls
+    - Filter invalid records
+    - Transform columns
+    But forget to call .write() or .count() at the end.
+    Result: Data is never cleaned, downstream systems use dirty data!
+
+    SYMPTOMS IN PRODUCTION:
+    -----------------------
+    - Code runs in seconds (suspiciously fast)
+    - No errors or warnings
+    - Spark UI shows no jobs executed
+    - Output files are empty or missing
+    - Downstream processes fail with unexpected data
+
+    SEE ALSO:
+    ---------
+    - safe_with_action() - Correct implementation with action
+    - Spark Lazy Evaluation: https://spark.apache.org/docs/latest/rdd-programming-guide.html
+
+    ============================================================================
     """
+    # ========================================================================
+    # STEP 1: Create SparkSession
+    # ========================================================================
     spark = (
         SparkSession.builder.appName("No Action UB").master("local[*]").getOrCreate()
     )
 
     print("❌ DANGEROUS: Creating DataFrame but never executing")
 
+    # ========================================================================
+    # STEP 2: Define transformations (NO execution happens!)
+    # ========================================================================
     df = spark.range(1000000)
 
-    # ❌ All of these do NOTHING without an action!
+    # ❌ DANGER: All of these do NOTHING without an action!
+    # These only build an execution plan - no actual data processing occurs
     result = df.filter(col("id") > 500000)
     result = result.withColumn("doubled", col("id") * 2)
     result = result.select("doubled")
 
+    # ========================================================================
+    # STEP 3: Code completes with no errors, but NO WORK was done!
+    # ========================================================================
     print("   Code executed, but NO ACTUAL COMPUTATION happened!")
     print("   Transformations are lazy - need .count(), .show(), .collect(), etc.")
+    print("   ❌ Check Spark UI - you'll see ZERO jobs executed")
 
     spark.stop()
 
 
 def safe_with_action():
     """
-    ✅ SAFE: Trigger action to execute transformations.
+    ============================================================================
+    ✅ SAFE: Trigger Action to Execute Transformations
+    ============================================================================
+
+    WHAT THIS DEMONSTRATES:
+    -----------------------
+    Shows the correct way to execute transformations by triggering an action.
+    Actions (count, collect, show, write, etc.) force Spark to actually
+    execute the transformation pipeline.
+
+    THE SOLUTION:
+    -------------
+    Always end your transformation chain with an action:
+    - .count() - Count rows
+    - .collect() - Bring all data to driver
+    - .show() - Display sample rows
+    - .write.X() - Save to storage
+    - .foreach() - Process each row
+
+    WHY IT WORKS:
+    -------------
+    1. Transformations build execution plan (DAG)
+    2. Action triggers DAG optimization
+    3. Spark executes optimized plan
+    4. Results are materialized and returned
+
+    BEST PRACTICES:
+    ---------------
+    1. Always end pipelines with an action
+    2. Use .count() for validation
+    3. Use .write() for persistence
+    4. Avoid .collect() on large datasets (OOM risk)
+
+    ============================================================================
     """
+    # ========================================================================
+    # STEP 1: Create SparkSession
+    # ========================================================================
     spark = SparkSession.builder.appName("Safe Action").master("local[*]").getOrCreate()
 
     print("✅ SAFE: Triggering action to execute transformations")
 
+    # ========================================================================
+    # STEP 2: Define transformations
+    # ========================================================================
     df = spark.range(1000000)
     result = (
         df.filter(col("id") > 500000)
@@ -362,73 +472,191 @@ def safe_with_action():
         .select("doubled")
     )
 
-    # ✅ Action triggers execution
+    # ========================================================================
+    # STEP 3: Trigger action to execute the plan
+    # ========================================================================
+    # ✅ CORRECT: .count() is an action that triggers execution
     count = result.count()
     print(f"   Processed {count} rows")
+    print("   ✅ Check Spark UI - you'll see 1 job with all transformations executed")
 
     spark.stop()
 
 
-# =============================================================================
+# ============================================================================
 # DANGEROUS PATTERN 3: Side Effects in Transformations
-# =============================================================================
+# ============================================================================
 
+# Global variable to demonstrate side effects problem
 SIDE_EFFECT_COUNTER = 0
 
 
 def dangerous_side_effects():
     """
-    ⚠️ UNDEFINED BEHAVIOR: Side effects in transformations.
+    ============================================================================
+    ❌ DANGEROUS: Side Effects in Transformations
+    ============================================================================
 
-    PROBLEM: Side effects may execute 0 times, 1 time, or many times.
-    RESULT: Unpredictable behavior, data corruption.
+    WHAT THIS DEMONSTRATES:
+    -----------------------
+    Shows why you should NEVER have side effects (global variable modifications,
+    file writes, database updates) inside UDFs or transformations. Due to lazy
+    evaluation and potential recomputation, side effects may execute 0 times,
+    1 time, or many times unpredictably.
+
+    THE PROBLEM:
+    ------------
+    Transformations are:
+    - Lazy (may not execute at all)
+    - Potentially recomputed (may execute multiple times)
+    - Executed on executors (global state not shared with driver)
+
+    Result: Global variable changes are lost or multiplied unpredictably!
+
+    WHY IT FAILS:
+    -------------
+    1. UDF with side effect defined on driver
+    2. UDF serialized and sent to executors
+    3. Executors modify their LOCAL copy of global variable
+    4. Driver's global variable remains unchanged
+    5. Without caching, each action recomputes and re-executes side effects
+    6. Counter increments unpredictably
+
+    REAL-WORLD SCENARIO:
+    --------------------
+    - Writing to a log file inside a UDF → File corrupted with duplicates
+    - Incrementing a counter inside a transformation → Count is wrong
+    - Inserting into database inside UDF → Duplicate inserts on recomputation
+    - Sending emails inside UDF → Users receive multiple copies!
+
+    SYMPTOMS IN PRODUCTION:
+    -----------------------
+    - Counters show wrong values
+    - Files contain duplicate entries
+    - Database has redundant records
+    - External APIs receive duplicate requests
+    - Behavior changes between runs
+
+    SEE ALSO:
+    ---------
+    - Use spark.sparkContext.accumulator() for counters
+    - Use foreachPartition() for write operations
+
+    ============================================================================
     """
     global SIDE_EFFECT_COUNTER
     SIDE_EFFECT_COUNTER = 0
 
+    # ========================================================================
+    # STEP 1: Create SparkSession
+    # ========================================================================
     spark = (
         SparkSession.builder.appName("Side Effects UB").master("local[*]").getOrCreate()
     )
 
     print("❌ DANGEROUS: Side effects in transformations")
 
+    # ========================================================================
+    # STEP 2: Define UDF with dangerous side effect
+    # ========================================================================
     @udf(IntegerType())
     def dangerous_increment(value):
         global SIDE_EFFECT_COUNTER
-        SIDE_EFFECT_COUNTER += 1  # ❌ SIDE EFFECT!
+        # ❌ DANGER: Modifying global state inside UDF!
+        # This executes on executors, not the driver
+        # Changes are NOT visible to driver
+        # May execute 0, 1, or many times depending on caching/recomputation
+        SIDE_EFFECT_COUNTER += 1
         return value * 2
 
+    # ========================================================================
+    # STEP 3: Create transformation with side effect
+    # ========================================================================
     df = spark.range(10)
 
-    # Transform (not executed yet)
+    # ❌ DANGER: This transformation contains a side effect
+    # It won't execute until an action is triggered
     transformed = df.withColumn("doubled", dangerous_increment(col("id")))
 
+    # ========================================================================
+    # STEP 4: Observe unpredictable side effect behavior
+    # ========================================================================
+    # No action yet - counter still 0 because transformation didn't execute
     print(f"   Counter after transformation: {SIDE_EFFECT_COUNTER}")  # Still 0!
 
-    # First action
+    # First action - triggers execution, counter incremented
     transformed.count()
     print(f"   Counter after count(): {SIDE_EFFECT_COUNTER}")
 
-    # Second action - may recompute!
+    # Second action - may recompute! Counter incremented AGAIN
     transformed.count()
     print(f"   Counter after second count(): {SIDE_EFFECT_COUNTER}")
 
     print("   ⚠️ Counter value is UNPREDICTABLE!")
+    print("   ⚠️ Without caching, count is likely doubled (2x actual rows)")
 
     spark.stop()
 
 
-# =============================================================================
+# ============================================================================
 # DANGEROUS PATTERN 4: Accumulator Double-Counting
-# =============================================================================
+# ============================================================================
 
 
 def dangerous_accumulator_double_counting():
     """
-    ⚠️ UNDEFINED BEHAVIOR: Accumulators count multiple times on DAG recomputation.
+    ============================================================================
+    ❌ DANGEROUS: Accumulator Double-Counting on DAG Recomputation
+    ============================================================================
 
-    PROBLEM: Each action recomputes DAG, adding to accumulator again.
-    RESULT: Accumulator values are inflated/incorrect.
+    WHAT THIS DEMONSTRATES:
+    -----------------------
+    Shows a critical pitfall with Spark accumulators: when used with uncached
+    DataFrames that have multiple actions, accumulators increment MULTIPLE
+    times as the DAG is recomputed for each action.
+
+    THE PROBLEM:
+    ------------
+    Accumulators are designed to aggregate values across executors:
+    - Executors add to accumulator during computation
+    - Driver reads the aggregated value
+    - BUT: If DAG recomputes, accumulator increments AGAIN
+
+    Without caching:
+    Action 1: Compute DAG + increment accumulator → accumulator = 100
+    Action 2: RECOMPUTE DAG + increment accumulator AGAIN → accumulator = 200!
+
+    WHY IT FAILS:
+    -------------
+    1. Accumulator increments during DAG execution
+    2. First action executes DAG → accumulator = N
+    3. No caching, so DataFrame is not materialized
+    4. Second action recomputes DAG → accumulator = 2N
+    5. Third action recomputes again → accumulator = 3N
+    6. Final value = (number_of_actions × N) instead of N
+
+    REAL-WORLD SCENARIO:
+    --------------------
+    Tracking metrics in production:
+    - Count processed records using accumulator
+    - Run multiple quality checks (each is an action)
+    - Accumulator shows 300 records processed
+    - But only 100 records actually exist!
+    - Monitoring dashboards show inflated metrics
+
+    SYMPTOMS IN PRODUCTION:
+    -----------------------
+    - Accumulator values grow unexpectedly
+    - Metrics don't match actual data counts
+    - Values multiply with each action
+    - Monitoring dashboards show wrong statistics
+
+    SEE ALSO:
+    ---------
+    - safe_accumulator_with_cache() - Fix with caching
+    - Spark Accumulators Guide: https://spark.apache.org/docs/latest/rdd-programming-guide.html#accumulators
+
+    ============================================================================
     """
     spark = (
         SparkSession.builder.appName("Accumulator UB").master("local[*]").getOrCreate()
@@ -694,7 +922,12 @@ def dangerous_checkpoint_confusion():
     expensive.count()  # Trigger checkpoint
 
     print("   Lineage after checkpoint:")
-    print(f"   RDD: {expensive.rdd.toDebugString().decode()[:200]}...")
+    # 📝 NOTE: toDebugString() may return bytes, str, or None depending on Spark version
+    lineage_str = expensive.rdd.toDebugString()
+    if lineage_str:
+        if isinstance(lineage_str, bytes):
+            lineage_str = lineage_str.decode()
+        print(f"   RDD: {lineage_str[:200]}...")
     print("   ⚠️ Lineage truncated - parent RDD info lost!")
 
     spark.stop()
@@ -718,7 +951,12 @@ def safe_persist_explanation():
     expensive.count()
 
     print("   Lineage after persist:")
-    print(f"   RDD: {expensive.rdd.toDebugString().decode()[:200]}...")
+    # 📝 NOTE: Handle both bytes and str return types, and None
+    lineage_str = expensive.rdd.toDebugString()
+    if lineage_str:
+        if isinstance(lineage_str, bytes):
+            lineage_str = lineage_str.decode()
+        print(f"   RDD: {lineage_str[:200]}...")
     print("   ✅ Full lineage maintained for fault tolerance!")
 
     expensive.unpersist()
