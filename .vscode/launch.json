@@ -1,0 +1,96 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "PySpark: Current File (Local)",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${file}",
+      "console": "integratedTerminal",
+      "env": {
+        "SPARK_HOME": "${env:SPARK_HOME}",
+        "PYSPARK_PYTHON": "python3",
+        "PYSPARK_DRIVER_PYTHON": "python3",
+        "SPARK_LOCAL_IP": "127.0.0.1",
+        "PYTHONPATH": "${workspaceFolder}/src:${env:PYTHONPATH}"
+      },
+      "justMyCode": false,
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "name": "PySpark: Local Mode (4 cores)",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${file}",
+      "console": "integratedTerminal",
+      "env": {
+        "SPARK_HOME": "${env:SPARK_HOME}",
+        "PYSPARK_PYTHON": "python3",
+        "PYSPARK_DRIVER_PYTHON": "python3",
+        "SPARK_LOCAL_IP": "127.0.0.1",
+        "SPARK_MASTER": "local[4]",
+        "PYTHONPATH": "${workspaceFolder}/src:${env:PYTHONPATH}"
+      },
+      "justMyCode": false,
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "name": "PySpark: Debug with Arguments",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${file}",
+      "console": "integratedTerminal",
+      "args": [
+        "--input", "data/sample/",
+        "--output", "data/processed/"
+      ],
+      "env": {
+        "SPARK_HOME": "${env:SPARK_HOME}",
+        "PYSPARK_PYTHON": "python3",
+        "PYSPARK_DRIVER_PYTHON": "python3",
+        "SPARK_LOCAL_IP": "127.0.0.1",
+        "PYTHONPATH": "${workspaceFolder}/src:${env:PYTHONPATH}"
+      },
+      "justMyCode": false,
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "name": "PySpark: Attach to Remote",
+      "type": "debugpy",
+      "request": "attach",
+      "connect": {
+        "host": "localhost",
+        "port": 5678
+      },
+      "pathMappings": [
+        {
+          "localRoot": "${workspaceFolder}",
+          "remoteRoot": "/app"
+        }
+      ],
+      "justMyCode": false
+    },
+    {
+      "name": "Python: Current File",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${file}",
+      "console": "integratedTerminal",
+      "justMyCode": true,
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "name": "Python: Module",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "pytest",
+      "args": [
+        "tests/",
+        "-v"
+      ],
+      "console": "integratedTerminal",
+      "justMyCode": false,
+      "cwd": "${workspaceFolder}"
+    }
+  ]
+}

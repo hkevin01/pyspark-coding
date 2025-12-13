@@ -1,0 +1,15 @@
+{
+  "recommendations": [
+    "ms-python.python",
+    "ms-python.vscode-pylance",
+    "ms-toolsai.jupyter",
+    "ms-vscode-remote.remote-ssh",
+    "ms-python.black-formatter",
+    "eamodio.gitlens",
+    "ms-azuretools.vscode-docker",
+    "mtxr.sqltools",
+    "redhat.vscode-yaml",
+    "yzhang.markdown-all-in-one"
+  ],
+  "unwantedRecommendations": []
+}
