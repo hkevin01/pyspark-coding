@@ -1,11 +1,407 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
 """
-03_distributed_joins.py
-=======================
+================================================================================
+DISTRIBUTED JOINS - Optimization Techniques for Production Scale
+================================================================================
 
-Master distributed joins across multiple cluster nodes.
+MODULE OVERVIEW:
+----------------
+Joins are one of the most expensive operations in distributed computing because
+they typically require shuffling large amounts of data across the network. A
+naive join can shuffle terabytes of data, causing jobs to run for hours instead
+of minutes. Understanding join optimization is critical for production performance.
 
-Joins are expensive in distributed systems because they often require
-shuffling data across the network. This example shows optimization techniques.
+This module provides a comprehensive guide to:
+1. How distributed joins work under the hood
+2. Join strategies (Broadcast, Sort-Merge, Shuffle Hash)
+3. Optimization techniques to minimize shuffle
+4. Handling data skew in joins
+5. Different join types and their performance
+6. Production best practices
+
+PURPOSE:
+--------
+Learn to:
+• Choose the right join strategy for your data
+• Minimize network shuffle with broadcast joins
+• Partition data correctly for efficient joins
+• Handle data skew that causes join bottlenecks
+• Understand join execution in Spark UI
+• Optimize multi-table joins
+
+DISTRIBUTED JOIN FUNDAMENTALS:
+------------------------------
+
+Problem: Data on Different Nodes
+┌─────────────────────────────────────────────────────────────────┐
+│                    BEFORE JOIN                                  │
+├─────────────────────────────────────────────────────────────────┤
+│  Table A (Large - 100GB)           Table B (Large - 50GB)       │
+│  ┌──────────────────────┐          ┌──────────────────┐         │
+│  │ Node 1: A1 (25GB)    │          │ Node 1: B1 (12GB)│         │
+│  │ Node 2: A2 (25GB)    │          │ Node 2: B2 (13GB)│         │
+│  │ Node 3: A3 (25GB)    │          │ Node 3: B3 (12GB)│         │
+│  │ Node 4: A4 (25GB)    │          │ Node 4: B4 (13GB)│         │
+│  └──────────────────────┘          └──────────────────┘         │
+│                                                                 │
+│  Problem: Records with same join key on different nodes!       │
+│  Solution: Shuffle data so matching keys are on same node      │
+└─────────────────────────────────────────────────────────────────┘
+
+JOIN EXECUTION STRATEGIES:
+--------------------------
+
+Strategy 1: Broadcast Hash Join (Small Table)
+┌─────────────────────────────────────────────────────────────────┐
+│  BROADCAST JOIN (Optimal for small dimension tables)            │
+├─────────────────────────────────────────────────────────────────┤
+│  Small Table B (100MB) →  Broadcast to ALL nodes               │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │          Broadcast (B copied to all executors)          │   │
+│  │  ┌──────────────────────────────────────────────────┐   │   │
+│  │  │  B│  B│  B│  B│  B│  B│  B│  B│  B│  B│  B│  B│   │   │
+│  │  └──────────────────────────────────────────────────┘   │   │
+│  └─────────────────────────────────────────────────────────┘   │
+│           ↓    ↓    ↓    ↓    ↓    ↓    ↓    ↓                │
+│  Large Table A (100GB) stays partitioned:                      │
+│  ┌────┬────┬────┬────┬────┬────┬────┬────┬────┬────┐         │
+│  │ A1 │ A2 │ A3 │ A4 │ A5 │ A6 │ A7 │ A8 │ A9 │A10 │         │
+│  └────┴────┴────┴────┴────┴────┴────┴────┴────┴────┘         │
+│   Join locally on each executor (no shuffle for A!)           │
+│                                                                │
+│  ✅ Pros: No shuffle of large table, very fast                │
+│  ❌ Cons: Small table must fit in executor memory             │
+│  📏 Threshold: spark.sql.autoBroadcastJoinThreshold (10MB)    │
+└─────────────────────────────────────────────────────────────────┘
+
+Strategy 2: Sort-Merge Join (Large-Large)
+┌─────────────────────────────────────────────────────────────────┐
+│  SORT-MERGE JOIN (Default for large-large joins)               │
+├─────────────────────────────────────────────────────────────────┤
+│  1. Shuffle both tables by join key (hash partitioning)        │
+│                                                                 │
+│  Table A (before shuffle):        Table B (before shuffle):    │
+│  ┌─────┬─────┬─────┬─────┐       ┌─────┬─────┬─────┐          │
+│  │ A1  │ A2  │ A3  │ A4  │       │ B1  │ B2  │ B3  │          │
+│  │mixed│mixed│mixed│mixed│       │mixed│mixed│mixed│          │
+│  └─────┴─────┴─────┴─────┘       └─────┴─────┴─────┘          │
+│         ↓                                ↓                      │
+│  ═══════════════════════════════════════════════════           │
+│         SHUFFLE BY KEY (Expensive!)                            │
+│  ═══════════════════════════════════════════════════           │
+│         ↓                                ↓                      │
+│  Table A (after shuffle):         Table B (after shuffle):     │
+│  ┌─────┬─────┬─────┬─────┐       ┌─────┬─────┬─────┐          │
+│  │key=1│key=2│key=3│key=4│       │key=1│key=2│key=3│          │
+│  └─────┴─────┴─────┴─────┘       └─────┴─────┴─────┘          │
+│                                                                 │
+│  2. Sort each partition by join key                            │
+│  3. Merge sorted partitions (efficient)                        │
+│                                                                 │
+│  ✅ Pros: Works for large-large joins, scalable                │
+│  ❌ Cons: Expensive shuffle, memory for sorting                │
+│  📊 Use: Default for DataFrames, most common                   │
+└─────────────────────────────────────────────────────────────────┘
+
+Strategy 3: Shuffle Hash Join
+┌─────────────────────────────────────────────────────────────────┐
+│  SHUFFLE HASH JOIN (Less common)                               │
+├─────────────────────────────────────────────────────────────────┤
+│  1. Shuffle both tables by join key                            │
+│  2. Build hash table for smaller side (per partition)          │
+│  3. Probe with larger side                                     │
+│                                                                 │
+│  ✅ Pros: No sorting needed                                    │
+│  ❌ Cons: Hash table must fit in memory, shuffle both sides    │
+│  📊 Use: spark.sql.join.preferSortMergeJoin=false              │
+└─────────────────────────────────────────────────────────────────┘
+
+JOIN TYPES AND PERFORMANCE:
+---------------------------
+
+Join Type Comparison:
+┌────────────────┬─────────────────────┬──────────────┬───────────────┐
+│ Join Type      │ Result              │ Shuffle      │ Use Case      │
+├────────────────┼─────────────────────┼──────────────┼───────────────┤
+│ INNER          │ Only matching rows  │ Both sides   │ Standard join │
+│ LEFT OUTER     │ All left + matched  │ Both sides   │ Keep all left │
+│ RIGHT OUTER    │ All right + matched │ Both sides   │ Keep all right│
+│ FULL OUTER     │ All from both       │ Both sides   │ Union-like    │
+│ LEFT SEMI      │ Left rows that match│ Both sides   │ Filtering     │
+│ LEFT ANTI      │ Left rows no match  │ Both sides   │ Exclusion     │
+│ CROSS          │ Cartesian product   │ Huge shuffle │ Rare (avoid!) │
+└────────────────┴─────────────────────┴──────────────┴───────────────┘
+
+Detailed Join Type Behavior:
+
+INNER JOIN:
+  A: [1, 2, 3]          B: [2, 3, 4]
+  Result: [2, 3]  (only matching keys)
+
+LEFT OUTER JOIN:
+  A: [1, 2, 3]          B: [2, 3, 4]
+  Result: [1, 2, 3]  (all from A, nulls for 1)
+
+FULL OUTER JOIN:
+  A: [1, 2, 3]          B: [2, 3, 4]
+  Result: [1, 2, 3, 4]  (all from both, nulls for non-matches)
+
+LEFT SEMI JOIN (Efficient Filtering):
+  A: [1, 2, 3]          B: [2, 3, 4]
+  Result: [2, 3]  (same as INNER but only A columns, no duplicates)
+  
+  Equivalent SQL: SELECT * FROM A WHERE A.key IN (SELECT key FROM B)
+  ✅ Better than: INNER + SELECT DISTINCT + DROP B columns
+
+LEFT ANTI JOIN (Exclusion):
+  A: [1, 2, 3]          B: [2, 3, 4]
+  Result: [1]  (only A rows with no match in B)
+  
+  Equivalent SQL: SELECT * FROM A WHERE A.key NOT IN (SELECT key FROM B)
+
+OPTIMIZATION TECHNIQUES:
+------------------------
+
+Optimization 1: Broadcast Join for Small Tables
+Rule: If one table < 10MB, ALWAYS broadcast
+
+❌ Bad (shuffle both):
+orders.join(products, "product_id")  # Both tables shuffled
+
+✅ Good (broadcast small):
+from pyspark.sql.functions import broadcast
+orders.join(broadcast(products), "product_id")  # Only orders shuffled
+
+Performance: 5-10x faster for large-small joins
+
+Optimization 2: Pre-partition on Join Key
+Rule: Partition both tables on join key BEFORE multiple joins
+
+❌ Bad (random partitions):
+df1.join(df2, "key")  # Random partitions, full shuffle
+
+✅ Good (aligned partitions):
+df1_partitioned = df1.repartition(100, "key")
+df2_partitioned = df2.repartition(100, "key")
+df1_partitioned.join(df2_partitioned, "key")  # Co-located data, minimal shuffle
+
+Optimization 3: Cache After Partitioning
+Rule: If joining same table multiple times, cache after partitioning
+
+✅ Best:
+df_partitioned = df.repartition(100, "key").cache()
+df_partitioned.count()  # Materialize cache
+result1 = df_partitioned.join(other1, "key")
+result2 = df_partitioned.join(other2, "key")  # Uses cached partitions
+
+Optimization 4: Filter BEFORE Join
+Rule: Reduce data size before expensive operations
+
+❌ Bad (join then filter):
+df1.join(df2, "key").filter(col("amount") > 1000)  # Full shuffle, then filter
+
+✅ Good (filter then join):
+df1_filtered = df1.filter(col("amount") > 1000)
+df1_filtered.join(df2, "key")  # Less data to shuffle
+
+Optimization 5: Use Appropriate Join Type
+Rule: Use LEFT SEMI for existence checks
+
+❌ Bad (inefficient):
+df1.join(df2, "key", "inner") \\
+   .select(df1.columns) \\
+   .distinct()  # Shuffle, duplicate elimination
+
+✅ Good (efficient):
+df1.join(df2, "key", "left_semi")  # No duplicates, only df1 columns
+
+DATA SKEW IN JOINS:
+-------------------
+
+Problem: Skewed Join Keys
+┌─────────────────────────────────────────────────────────────────┐
+│              UNBALANCED JOIN (Data Skew)                        │
+├─────────────────────────────────────────────────────────────────┤
+│  Partition distribution after shuffle by join key:             │
+│  ┌─┬─┬─┬──────────────────────────────────────────────┬─┬─┐    │
+│  │P│P│P│      Partition 3 (90% of data)              │P│P│    │
+│  │0│1│2│      One executor overloaded                │4│5│    │
+│  └─┴─┴─┴──────────────────────────────────────────────┴─┴─┘    │
+│   2m 2m 2m          1 hour (bottleneck!)            2m 2m      │
+│                                                                 │
+│  Cause: One key (e.g., user_id="popular") has 90% of data      │
+│  Effect: Job takes 1 hour instead of 2 minutes                 │
+└─────────────────────────────────────────────────────────────────┘
+
+Skew Mitigation Technique 1: Salting
+For skewed fact table joining dimension table:
+
+# Step 1: Add salt to fact table (split hot keys)
+from pyspark.sql.functions import concat, lit, rand
+fact_salted = fact.withColumn("salt", (rand() * 10).cast("int")) \\
+    .withColumn("salted_key", concat(col("user_id"), lit("_"), col("salt")))
+
+# Step 2: Replicate dimension table with all salts
+from pyspark.sql.functions import explode, array
+dim_replicated = dim.withColumn("salt", explode(array([lit(i) for i in range(10)]))) \\
+    .withColumn("salted_key", concat(col("user_id"), lit("_"), col("salt")))
+
+# Step 3: Join on salted key (distributed across 10 partitions per key)
+result = fact_salted.join(dim_replicated, "salted_key")
+
+Skew Mitigation Technique 2: Separate Hot Keys
+# Step 1: Identify hot keys
+hot_keys = fact.groupBy("user_id").count() \\
+    .filter(col("count") > 100000) \\
+    .select("user_id")
+
+# Step 2: Split into hot and cold
+fact_hot = fact.join(broadcast(hot_keys), "user_id", "left_semi")
+fact_cold = fact.join(broadcast(hot_keys), "user_id", "left_anti")
+
+# Step 3: Process separately
+result_hot = fact_hot.join(broadcast(dim), "user_id")  # Broadcast for hot
+result_cold = fact_cold.join(dim, "user_id")  # Regular join for cold
+result = result_hot.union(result_cold)
+
+Skew Mitigation Technique 3: Adaptive Query Execution (Spark 3+)
+spark.conf.set("spark.sql.adaptive.enabled", "true")
+spark.conf.set("spark.sql.adaptive.skewJoin.enabled", "true")
+spark.conf.set("spark.sql.adaptive.skewJoin.skewedPartitionFactor", "5")
+spark.conf.set("spark.sql.adaptive.skewJoin.skewedPartitionThresholdInBytes", "256MB")
+
+# Spark automatically detects and handles skew
+
+MULTI-TABLE JOINS:
+------------------
+
+Optimization: Join Order Matters
+┌─────────────────────────────────────────────────────────────────┐
+│  ❌ BAD ORDER (Large → Medium → Small):                         │
+│                                                                 │
+│  large_df (100GB)                                               │
+│      .join(medium_df (10GB), "key1")  ← Shuffle 100GB + 10GB   │
+│      .join(small_df (100MB), "key2")  ← Shuffle 110GB + 100MB  │
+│                                                                 │
+│  Total shuffle: ~220GB                                          │
+├─────────────────────────────────────────────────────────────────┤
+│  ✅ GOOD ORDER (Small → Medium → Large):                        │
+│                                                                 │
+│  small_df (100MB)                                               │
+│      .join(medium_df (10GB), "key1")  ← Broadcast 100MB        │
+│      .join(large_df (100GB), "key2")  ← Shuffle 10GB + 100GB   │
+│                                                                 │
+│  Total shuffle: ~110GB (2x improvement!)                        │
+│                                                                 │
+│  Rule: Join smallest tables first, largest last                │
+└─────────────────────────────────────────────────────────────────┘
+
+Star Schema Joins (Fact + Multiple Dimensions):
+# Broadcast all small dimension tables
+fact.join(broadcast(dim1), "dim1_id") \\
+    .join(broadcast(dim2), "dim2_id") \\
+    .join(broadcast(dim3), "dim3_id")
+
+# Only fact table shuffled once
+
+PERFORMANCE BENCHMARKS:
+-----------------------
+
+Typical Performance Impact:
+┌──────────────────────────┬──────────────┬──────────────┬───────────┐
+│ Scenario                 │ Naive        │ Optimized    │ Speedup   │
+├──────────────────────────┼──────────────┼──────────────┼───────────┤
+│ Large-Small Join         │ 45 min       │ 5 min        │ 9x        │
+│ (with broadcast)         │              │              │           │
+├──────────────────────────┼──────────────┼──────────────┼───────────┤
+│ Large-Large Join         │ 30 min       │ 10 min       │ 3x        │
+│ (with pre-partition)     │              │              │           │
+├──────────────────────────┼──────────────┼──────────────┼───────────┤
+│ Skewed Join              │ 2 hours      │ 20 min       │ 6x        │
+│ (with salting)           │              │              │           │
+├──────────────────────────┼──────────────┼──────────────┼───────────┤
+│ Multi-table Join         │ 1 hour       │ 15 min       │ 4x        │
+│ (join order + broadcast) │              │              │           │
+└──────────────────────────┴──────────────┴──────────────┴───────────┘
+
+MONITORING & DEBUGGING:
+-----------------------
+
+Spark UI Metrics to Check:
+1. SQL Tab → Query Plan:
+   • Look for "Exchange" (shuffle operations)
+   • BroadcastHashJoin vs SortMergeJoin
+   • Shuffle read/write sizes
+
+2. Stages Tab → Task Metrics:
+   • Shuffle Read Size: Look for skew (max >> median)
+   • Task Duration: Identify stragglers
+   • GC Time: Should be < 10% of task time
+
+3. Executors Tab:
+   • Memory usage during join
+   • Shuffle read/write per executor
+
+SQL Plan Example:
+== Physical Plan ==
+*(5) Project [...]
++- *(5) SortMergeJoin [id#1], [id#2]  ← Join type
+   :- *(2) Sort [id#1]
+   :  +- Exchange hashpartitioning(id#1, 200)  ← Shuffle!
+   :     +- *(1) Filter [...]
+   +- *(4) Sort [id#2]
+      +- Exchange hashpartitioning(id#2, 200)  ← Shuffle!
+         +- *(3) Filter [...]
+
+BEST PRACTICES CHECKLIST:
+-------------------------
+
+☐ Use broadcast() for tables < 10MB
+☐ Filter data before joins
+☐ Partition both tables on join key (same partition count)
+☐ Cache if joining same table multiple times
+☐ Use left_semi for existence checks
+☐ Avoid full outer joins when possible
+☐ Join smallest tables first in multi-joins
+☐ Monitor shuffle size in Spark UI
+☐ Enable Adaptive Query Execution (Spark 3+)
+☐ Handle data skew (salting or separate processing)
+☐ Use appropriate join type (don't default to inner)
+☐ Avoid cross joins (cartesian products)
+
+COMMON MISTAKES:
+----------------
+
+❌ #1: Not broadcasting small tables
+❌ #2: Different partition counts on join tables
+❌ #3: Joining without filtering first
+❌ #4: Ignoring data skew
+❌ #5: Using inner join + distinct instead of left_semi
+❌ #6: Wrong join order in multi-table joins
+❌ #7: Not caching repeatedly joined tables
+❌ #8: Using show() to inspect large join results (use explain())
+
+TARGET AUDIENCE:
+----------------
+• Data engineers optimizing slow joins
+• Anyone experiencing shuffle-related performance issues
+• Teams handling multi-TB join operations
+• Developers debugging OOM errors during joins
+
+RELATED RESOURCES:
+------------------
+• cluster_computing/02_data_partitioning.py (partitioning strategies)
+• cluster_computing/04_aggregations_at_scale.py
+• security/02_common_mistakes.py (#8 Cartesian Joins, #9 Broadcast Joins)
+• Spark SQL Performance Tuning: https://spark.apache.org/docs/latest/sql-performance-tuning.html
+
+AUTHOR: PySpark Education Project
+LICENSE: Educational Use - MIT License
+VERSION: 2.0.0 - Comprehensive Distributed Joins Guide
+UPDATED: 2024
+================================================================================
 """
 
 from pyspark.sql import SparkSession
