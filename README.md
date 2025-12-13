@@ -22,6 +22,7 @@
 - [⭐ What's New - Cluster Computing Package](#-whats-new---cluster-computing-package)
 - [🔥 New: Scala Examples & Performance Comparison](#-new-scala-examples--performance-comparison)
 - [🐍 New: Complete Python Ecosystem Integration](#-new-complete-python-ecosystem-integration)
+- [⚠️ New: PySpark Undefined Behavior & Anti-Patterns](#-new-pyspark-undefined-behavior--anti-patterns)
 - [Project Structure](#-project-structure)
 - [Setup Instructions](#-setup-instructions)
 - [Quick Start](#-quick-start)
@@ -798,6 +799,163 @@ This package teaches you how to:
 
 ---
 
+## ⚠️ New: PySpark Undefined Behavior & Anti-Patterns
+
+**Location:** `src/undefined_error/pyspark/`  
+**Purpose:** Learn what **NOT to do** in PySpark production environments
+
+### 🚨 Why This Matters
+
+Production PySpark jobs fail silently due to:
+- **Closure serialization** crashes (non-serializable objects)
+- **Lazy evaluation** causing 10x performance degradation
+- **Data skew** leading to executor OOM errors
+- **Type coercion** losing data without errors
+- **NULL handling** bugs corrupting pipelines
+
+### 📚 What You'll Learn
+
+**4 comprehensive modules covering 50+ dangerous patterns:**
+
+| File | Lines | Real-World Failures |
+|------|-------|---------------------|
+| `01_closure_serialization.py` | 527 | File handles, locks, instance methods, late binding |
+| `02_lazy_evaluation.py` | 665 | Multiple recomputations, accumulator double-counting |
+| `03_data_skew_partitions.py` | 160 | Hot keys causing OOM, partition imbalance |
+| `04_type_coercion_null.py` | 210 | Silent NULL creation, division by zero |
+
+**Total: 1,562 lines of production anti-patterns + safe alternatives**
+
+### 🔥 Top 5 Production-Breaking Bugs Demonstrated
+
+#### 1. **Non-Serializable Objects** (Executor Crashes)
+```python
+# ❌ DANGER: Crashes executor
+log_file = open('log.txt', 'w')
+
+@udf(StringType())
+def log_udf(value):
+    log_file.write(value)  # File handle cannot be serialized!
+    return value
+
+# ✅ SAFE: Create resources on executors
+@udf(StringType())
+def safe_udf(value):
+    with open('log.txt', 'a') as f:  # Create inside UDF
+        f.write(value)
+    return value
+```
+
+#### 2. **Data Skew OOM** (One Executor Gets 99% of Data)
+```python
+# ❌ DANGER: One executor OOMs, others idle
+df.withColumn("key", lit("hot_key")).groupBy("key").count()
+
+# ✅ SAFE: Salting technique
+df.withColumn("salt", (rand() * 10).cast("int")) \
+  .withColumn("salted_key", concat(col("key"), col("salt"))) \
+  .groupBy("salted_key").count()
+```
+
+#### 3. **Type Coercion Data Loss** (Silent Failures)
+```python
+# ❌ DANGER: Invalid strings become NULL silently
+df.withColumn("as_int", col("string_col").cast("int"))
+# "123abc" → NULL (no error, data lost!)
+
+# ✅ SAFE: Validate before casting
+df.withColumn("valid", col("string_col").rlike("^[0-9]+$")) \
+  .withColumn("as_int", when(col("valid"), col("string_col").cast("int")))
+```
+
+#### 4. **Accumulator Double-Counting** (Wrong Results)
+```python
+# ❌ DANGER: Counter incremented multiple times
+counter = spark.sparkContext.accumulator(0)
+
+def increment(row):
+    counter.add(1)
+    return row
+
+transformed = df.rdd.map(increment).toDF()
+transformed.count()  # Counter = 100
+transformed.count()  # Counter = 200 (WRONG!)
+
+# ✅ SAFE: Cache to prevent recomputation
+transformed.cache()
+transformed.count()  # Counter = 100
+transformed.count()  # Counter still 100
+```
+
+#### 5. **Multiple Recomputations** (10x Performance Loss)
+```python
+# ❌ DANGER: Each action recomputes entire DAG
+expensive_df = df.withColumn("expensive", expensive_computation())
+expensive_df.count()  # Full computation (2 seconds)
+expensive_df.sum()    # Full computation AGAIN! (2 seconds)
+
+# ✅ SAFE: Cache before multiple actions
+expensive_df.cache()
+expensive_df.count()  # Full computation (2 seconds)
+expensive_df.sum()    # Uses cache! (0.1 seconds)
+```
+
+### 🏃 Quick Start
+
+```bash
+# Navigate to undefined behavior examples
+cd src/undefined_error/pyspark/
+
+# Run all examples (see 50+ dangerous patterns)
+./run_all.sh
+
+# Or run individual demonstrations
+python3 01_closure_serialization.py
+python3 02_lazy_evaluation.py
+python3 03_data_skew_partitions.py
+python3 04_type_coercion_null.py
+```
+
+### 🛡️ Production Readiness Checklist
+
+Use this checklist before deploying PySpark to production:
+
+- [ ] ❌ No file handles, locks, or sockets in closures
+- [ ] ✅ All expensive DataFrames cached before multiple actions
+- [ ] ✅ UDFs explicitly handle NULL/None values
+- [ ] ✅ No instance methods used as UDFs (use static methods)
+- [ ] ✅ Data skew monitored (check partition sizes)
+- [ ] ✅ Type casting validated before conversion
+- [ ] ✅ Accumulators only used with cached data
+- [ ] ✅ Random operations use seed + cache
+- [ ] ✅ Partition count appropriate (2-3x CPU cores)
+- [ ] ❌ No global variable modifications in UDFs
+
+### 📊 Performance Impact Summary
+
+| Anti-Pattern | Performance Impact | Severity |
+|--------------|-------------------|----------|
+| No caching + multiple actions | 2-10x slower | 🔴 Critical |
+| Data skew (hot keys) | Executor OOM crash | 🔴 Critical |
+| Single partition bottleneck | No parallelism | 🔴 Critical |
+| Too many tiny partitions | 50-200% overhead | 🟠 High |
+| Regular UDF vs Pandas UDF | 10-100x slower | 🟠 High |
+| Accumulator double-count | Wrong results | 🔴 Critical |
+| Type coercion silent loss | Data corruption | 🔴 Critical |
+
+### 🎓 Learning Structure
+
+Each file follows this pattern:
+1. **Dangerous Pattern (❌)** - Shows the bug in action
+2. **Problem Explanation** - Why it fails
+3. **Expected Result** - What goes wrong in production
+4. **Safe Alternative (✅)** - Correct approach
+5. **Key Takeaways** - Summary of lessons learned
+
+📄 **Full Documentation:** [src/undefined_error/pyspark/README.md](src/undefined_error/pyspark/README.md)
+
+---
+
 ## 🗂️ Project Structure
 
 ```
@@ -872,6 +1030,15 @@ pyspark-coding/
 │   │   ├── 06_complete_ml_pipeline.py     # End-to-end ML pipeline
 │   │   ├── 07_all_integrations.py         # 🆕 ALL 6 libraries together!
 │   │   └── README.md              # Python ecosystem complete guide
+│   │
+│   ├── undefined_error/           # ⚠️ NEW: PySpark Undefined Behavior & Anti-Patterns
+│   │   └── pyspark/               # Production-breaking pitfalls
+│   │       ├── 01_closure_serialization.py   # Non-serializable objects (527 lines)
+│   │       ├── 02_lazy_evaluation.py         # Lazy eval gotchas (665 lines)
+│   │       ├── 03_data_skew_partitions.py    # Data skew OOM errors (160 lines)
+│   │       ├── 04_type_coercion_null.py      # Type safety bugs (210 lines)
+│   │       ├── README.md          # 50+ dangerous patterns + safe alternatives
+│   │       └── run_all.sh         # Execute all examples
 │   │
 │   ├── pyspark_pytorch/           # PySpark + PyTorch integration
 │   │   ├── 01_dataframe_to_tensor.py      # Convert DataFrames to tensors
