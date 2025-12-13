@@ -1,12 +1,411 @@
 """
-06_gpu_accelerated_udfs.py
-===========================
+================================================================================
+CLUSTER COMPUTING #6 - GPU-Accelerated UDFs for Distributed Inference
+================================================================================
 
-Use GPUs on each cluster node for distributed deep learning inference.
+MODULE OVERVIEW:
+----------------
+GPU-accelerated UDFs enable distributed deep learning inference across cluster
+nodes. Each executor can leverage its local GPU for tasks like image classification,
+embedding generation, and neural network inference at massive scale.
 
-This example shows how to leverage the GPU of each worker node using
-PySpark UDFs for tasks like image classification, embedding generation,
-and neural network inference at scale.
+This is the intersection of distributed computing (PySpark) and GPU acceleration,
+providing 10-100x speedup for ML inference workloads.
+
+PURPOSE:
+--------
+Learn GPU-accelerated distributed computing:
+• GPU resource allocation in Spark clusters
+• Writing GPU-enabled Pandas UDFs
+• Model loading and caching strategies
+• Distributed deep learning inference
+• Performance optimization techniques
+• Troubleshooting GPU issues in clusters
+
+ARCHITECTURAL OVERVIEW:
+-----------------------
+
+┌─────────────────────────────────────────────────────────────────┐
+│            DISTRIBUTED GPU INFERENCE ARCHITECTURE               │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  Driver (Coordinator)                                          │
+│  ┌────────────────────────────────────────────────────────┐        │
+│  │ • Distributes tasks                                │        │
+│  │ • No GPU needed                                    │        │
+│  │ • Collects results                                 │        │
+│  └────────────────────────────────────────────────────────┘        │
+│                         ↓                                       │
+│                    Task Distribution                            │
+│                         ↓                                       │
+│  ┌──────────────┬──────────────┬──────────────┐               │
+│  │ Executor 1   │ Executor 2   │ Executor 3   │               │
+│  │ ┌──────────┐ │ ┌──────────┐ │ ┌──────────┐ │               │
+│  │ │ GPU 0    │ │ │ GPU 1    │ │ │ GPU 2    │ │               │
+│  │ │ Model    │ │ │ Model    │ │ │ Model    │ │               │
+│  │ │ Cached   │ │ │ Cached   │ │ │ Cached   │ │               │
+│  │ └──────────┘ │ └──────────┘ │ └──────────┘ │               │
+│  │ Process      │ Process      │ Process      │               │
+│  │ Partition 1  │ Partition 2  │ Partition 3  │               │
+│  └──────────────┴──────────────┴──────────────┘               │
+│                         ↓                                       │
+│                  Results Aggregation                            │
+│                         ↓                                       │
+│  Final Result (millions of predictions)                        │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+
+KEY CONCEPTS:
+-------------
+• Each executor gets one or more GPUs
+• Model loaded once per executor (cached in memory)
+• Batches processed in parallel across cluster
+• No data transfer between executors
+• Linear scaling with number of GPUs
+
+PERFORMANCE EXAMPLE:
+--------------------
+Task: Image classification on 10M images
+
+CPU-only cluster (16 cores × 10 nodes = 160 cores):
+• Time: ~8 hours
+• Cost: $32
+
+GPU cluster (1× V100 per executor, 10 executors):
+• Time: ~20 minutes (24x faster!)
+• Cost: $10
+• Throughput: 8,000 images/second
+
+SPARK GPU CONFIGURATION:
+------------------------
+
+1. YARN Cluster:
+```bash
+spark-submit \\
+    --master yarn \\
+    --deploy-mode cluster \\
+    --conf spark.executor.resource.gpu.amount=1 \\
+    --conf spark.task.resource.gpu.amount=1 \\
+    --conf spark.executor.resource.gpu.discoveryScript=/path/to/getGpusResources.sh \\
+    --conf spark.executor.memory=16g \\
+    --conf spark.executor.cores=4 \\
+    --num-executors 10 \\
+    gpu_inference.py
+```
+
+2. Kubernetes Cluster:
+```bash
+spark-submit \\
+    --master k8s://https://kubernetes:443 \\
+    --deploy-mode cluster \\
+    --conf spark.kubernetes.container.image=nvidia/cuda:11.8.0-runtime-ubuntu22.04 \\
+    --conf spark.executor.resource.gpu.amount=1 \\
+    --conf spark.executor.resource.gpu.vendor=nvidia.com/gpu \\
+    --conf spark.kubernetes.executor.request.cores=4 \\
+    --conf spark.executor.memory=16g \\
+    gpu_inference.py
+```
+
+3. Standalone Cluster:
+```bash
+spark-submit \\
+    --master spark://master:7077 \\
+    --conf spark.executor.resource.gpu.amount=1 \\
+    --conf spark.task.resource.gpu.amount=1 \\
+    --conf spark.worker.resource.gpu.amount=1 \\
+    --conf spark.worker.resource.gpu.discoveryScript=/opt/spark/getGpusResources.sh \\
+    gpu_inference.py
+```
+
+GPU-ENABLED PANDAS UDF PATTERN:
+--------------------------------
+
+```python
+from pyspark.sql.functions import pandas_udf
+import pandas as pd
+import torch
+
+# Global model cache (loaded once per executor)
+_model = None
+
+def get_model():
+    """Load model once per executor and cache."""
+    global _model
+    if _model is None:
+        _model = torch.load('model.pth')
+        _model.to('cuda')
+        _model.eval()
+    return _model
+
+@pandas_udf("array<float>")
+def gpu_inference_udf(image_paths: pd.Series) -> pd.Series:
+    """GPU-accelerated image classification."""
+    model = get_model()
+    
+    results = []
+    for path in image_paths:
+        # Load and preprocess image
+        image = load_image(path)
+        image_tensor = preprocess(image).unsqueeze(0).cuda()
+        
+        # Inference on GPU
+        with torch.no_grad():
+            output = model(image_tensor)
+            probabilities = torch.nn.functional.softmax(output[0], dim=0)
+        
+        results.append(probabilities.cpu().numpy().tolist())
+    
+    return pd.Series(results)
+
+# Apply to DataFrame
+df_with_predictions = df.withColumn(
+    "predictions", 
+    gpu_inference_udf(col("image_path"))
+)
+```
+
+PERFORMANCE OPTIMIZATION:
+-------------------------
+
+1. **Batch Processing within UDF**:
+```python
+@pandas_udf("array<float>")
+def batched_gpu_udf(paths: pd.Series) -> pd.Series:
+    model = get_model()
+    
+    # Process in batches of 32
+    batch_size = 32
+    all_results = []
+    
+    for i in range(0, len(paths), batch_size):
+        batch = paths[i:i+batch_size]
+        images = torch.stack([load_image(p) for p in batch]).cuda()
+        
+        with torch.no_grad():
+            outputs = model(images)  # Batch inference!
+        
+        all_results.extend(outputs.cpu().numpy().tolist())
+    
+    return pd.Series(all_results)
+```
+
+2. **Memory Management**:
+```python
+import gc
+
+@pandas_udf("array<float>")
+def memory_efficient_udf(data: pd.Series) -> pd.Series:
+    model = get_model()
+    
+    results = []
+    for item in data:
+        result = process_on_gpu(item)
+        results.append(result)
+        
+        # Clear GPU cache periodically
+        if len(results) % 100 == 0:
+            torch.cuda.empty_cache()
+            gc.collect()
+    
+    return pd.Series(results)
+```
+
+3. **Mixed Precision (2x speedup)**:
+```python
+@pandas_udf("array<float>")
+def mixed_precision_udf(data: pd.Series) -> pd.Series:
+    model = get_model()
+    
+    results = []
+    with torch.cuda.amp.autocast():  # Enable mixed precision
+        for item in data:
+            result = model(process(item).cuda())
+            results.append(result.cpu().numpy().tolist())
+    
+    return pd.Series(results)
+```
+
+COMMON PITFALLS & SOLUTIONS:
+-----------------------------
+
+❌ **Pitfall 1**: Reloading model for each batch
+```python
+# BAD - Reloads model every batch!
+@pandas_udf("array<float>")
+def bad_udf(data: pd.Series) -> pd.Series:
+    model = load_model()  # SLOW!
+    return pd.Series([model(x) for x in data])
+```
+
+✅ **Solution**: Cache model globally
+```python
+# GOOD - Load once per executor
+_model = None
+
+def get_model():
+    global _model
+    if _model is None:
+        _model = load_model()
+    return _model
+```
+
+❌ **Pitfall 2**: GPU out of memory
+```python
+# BAD - Processing too much data at once
+@pandas_udf("array<float>")
+def oom_udf(data: pd.Series) -> pd.Series:
+    all_data = torch.tensor(data.tolist()).cuda()  # OOM!
+    return model(all_data)
+```
+
+✅ **Solution**: Process in smaller batches
+```python
+# GOOD - Batch processing
+@pandas_udf("array<float>")
+def batched_udf(data: pd.Series) -> pd.Series:
+    results = []
+    for i in range(0, len(data), 32):
+        batch = torch.tensor(data[i:i+32].tolist()).cuda()
+        results.extend(model(batch).cpu().numpy())
+    return pd.Series(results)
+```
+
+❌ **Pitfall 3**: Not using GPU
+```python
+# BAD - Forgot to move to GPU!
+@pandas_udf("array<float>")
+def cpu_udf(data: pd.Series) -> pd.Series:
+    model = get_model()  # On GPU
+    tensor = torch.tensor(data.tolist())  # On CPU!
+    return model(tensor)  # ERROR or slow!
+```
+
+✅ **Solution**: Explicitly move to GPU
+```python
+# GOOD - Move to GPU
+@pandas_udf("array<float>")
+def gpu_udf(data: pd.Series) -> pd.Series:
+    model = get_model()
+    tensor = torch.tensor(data.tolist()).cuda()  # .cuda()!
+    return model(tensor).cpu().numpy()
+```
+
+MONITORING GPU USAGE:
+----------------------
+
+1. **Per-Executor Monitoring**:
+```python
+@pandas_udf("string")
+def monitor_gpu_udf(data: pd.Series) -> pd.Series:
+    import subprocess
+    
+    # Check GPU usage
+    result = subprocess.run(
+        ['nvidia-smi', '--query-gpu=utilization.gpu,memory.used',
+         '--format=csv,noheader,nounits'],
+        capture_output=True, text=True
+    )
+    
+    gpu_util, mem_used = result.stdout.strip().split(', ')
+    print(f"GPU Utilization: {gpu_util}%, Memory: {mem_used} MB")
+    
+    # Process data...
+    return pd.Series(["processed"] * len(data))
+```
+
+2. **Target Metrics**:
+- GPU Utilization: > 80% (good)
+- GPU Memory: < 90% (avoid OOM)
+- Batch size: Maximize without OOM
+- Throughput: Monitor samples/second
+
+DEPLOYMENT CHECKLIST:
+---------------------
+
+✅ Cluster Configuration:
+   - GPU drivers installed on all nodes
+   - CUDA toolkit version matches
+   - Spark GPU resource discovery configured
+   - Executor memory sized appropriately
+
+✅ Code Optimization:
+   - Model cached globally (not per batch)
+   - Batch processing within UDF
+   - GPU memory management
+   - Mixed precision enabled (if supported)
+
+✅ Monitoring:
+   - Spark UI for task distribution
+   - nvidia-smi for GPU utilization
+   - Memory usage per executor
+   - Throughput metrics
+
+✅ Testing:
+   - Test on single executor first
+   - Verify GPU detection
+   - Check memory usage
+   - Benchmark throughput
+   - Scale to full cluster
+
+REAL-WORLD EXAMPLE:
+-------------------
+
+Task: Classify 50 million images using ResNet-50
+
+Cluster: 20 executors × 1 V100 GPU each
+
+Configuration:
+```python
+spark = SparkSession.builder \\
+    .appName("ImageClassification") \\
+    .config("spark.executor.resource.gpu.amount", "1") \\
+    .config("spark.task.resource.gpu.amount", "1") \\
+    .config("spark.executor.memory", "16g") \\
+    .config("spark.executor.cores", "4") \\
+    .getOrCreate()
+
+# Load image paths
+df = spark.read.parquet("s3://images/metadata")  # 50M rows
+
+# Apply GPU UDF
+df_classified = df.withColumn(
+    "predictions",
+    classify_images_gpu_udf(col("image_path"))
+)
+
+df_classified.write.parquet("s3://results/predictions")
+```
+
+Performance:
+- Throughput: 10,000 images/sec (500 per GPU)
+- Total time: ~83 minutes
+- Cost: $50 (spot instances)
+- Speedup: 30x vs CPU-only
+
+Compare to CPU:
+- Time: ~42 hours
+- Cost: $200+
+- Not feasible for production!
+
+EXPLAIN() OUTPUT NOTES:
+-----------------------
+When using GPU UDFs, explain() shows:
+• PythonUDF in physical plan
+• No special GPU notation (handled by executor)
+• Task scheduling based on GPU resources
+• Partition count affects GPU utilization
+
+Check Spark UI → Executors tab:
+• "GPU Resources" column shows allocated GPUs
+• "Tasks" shows GPU task distribution
+• Monitor for GPU resource starvation
+
+See Also:
+---------
+• ../gpu_acceleration/ - Comprehensive GPU guides
+• 07_resource_management.py - Resource allocation
+• 02_data_partitioning.py - Partition tuning for GPUs
+• ../mllib/05_ml_inference_gpu.py - ML inference patterns
 """
 
 from pyspark.sql import SparkSession

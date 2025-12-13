@@ -1,25 +1,638 @@
 """
-09_cluster_monitoring.py
-========================
+================================================================================
+CLUSTER COMPUTING #9 - Cluster Monitoring and Performance Debugging
+================================================================================
 
-Master cluster monitoring: Spark UI, metrics, and performance debugging.
+MODULE OVERVIEW:
+----------------
+Effective monitoring is essential for production Spark applications. The Spark UI
+provides comprehensive metrics for debugging performance issues, identifying
+bottlenecks, and optimizing resource utilization.
 
-Learn how to monitor executor utilization, identify bottlenecks, and
-debug performance issues in distributed clusters.
+This module teaches you to master the Spark UI, interpret metrics, and debug
+common performance problems in distributed clusters.
+
+PURPOSE:
+--------
+Master cluster monitoring and debugging:
+• Navigate Spark UI tabs and metrics
+• Identify performance bottlenecks
+• Debug executor failures and stragglers
+• Monitor shuffle and memory usage
+• Analyze query execution plans
+• Set up production monitoring
+• Troubleshoot common issues
+
+SPARK UI ARCHITECTURE:
+-----------------------
+
+┌─────────────────────────────────────────────────────────────────┐
+│                      SPARK UI OVERVIEW                          │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  Access URLs:                                                   │
+│  • Local: http://localhost:4040                                │
+│  • Driver: http://<driver-ip>:4040                             │
+│  • History Server: http://<history-server>:18080               │
+│                                                                 │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │ TABS                                                    │   │
+│  ├─────────────────────────────────────────────────────────┤   │
+│  │                                                         │   │
+│  │  1. Jobs Tab                                            │   │
+│  │     • High-level job overview                           │   │
+│  │     • Job duration and status                           │   │
+│  │     • Timeline visualization                            │   │
+│  │                                                         │   │
+│  │  2. Stages Tab                                          │   │
+│  │     • Detailed stage metrics                            │   │
+│  │     • Task distribution                                 │   │
+│  │     • Shuffle read/write                                │   │
+│  │     • Input/output sizes                                │   │
+│  │                                                         │   │
+│  │  3. Storage Tab                                         │   │
+│  │     • Cached RDDs/DataFrames                            │   │
+│  │     • Memory usage                                      │   │
+│  │     • Persistence levels                                │   │
+│  │                                                         │   │
+│  │  4. Environment Tab                                     │   │
+│  │     • Spark configuration                               │   │
+│  │     • System properties                                 │   │
+│  │     • Classpath entries                                 │   │
+│  │                                                         │   │
+│  │  5. Executors Tab                                       │   │
+│  │     • Executor resource usage                           │   │
+│  │     • GC time                                           │   │
+│  │     • Shuffle metrics                                   │   │
+│  │     • Task failures                                     │   │
+│  │                                                         │   │
+│  │  6. SQL Tab                                             │   │
+│  │     • Query execution plans                             │   │
+│  │     • Physical vs logical plans                         │   │
+│  │     • Metrics per operation                             │   │
+│  │                                                         │   │
+│  └─────────────────────────────────────────────────────────┘   │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+
+JOBS TAB - HIGH-LEVEL OVERVIEW:
+--------------------------------
+
+What to Look For:
+-----------------
+✅ **Job Status**:
+   - Succeeded: ✅ Job completed
+   - Running: ⏳ In progress
+   - Failed: ❌ Check errors
+
+✅ **Duration**:
+   - Compare similar jobs
+   - Identify slow jobs
+   - Track performance trends
+
+✅ **Stages**:
+   - Number of stages (fewer is better)
+   - Stage dependencies
+   - Parallel vs sequential execution
+
+Example Timeline Visualization:
+```
+Job 0: ████████████████████ (45s)
+  Stage 0: ██████ (15s)
+  Stage 1: ████████████ (30s)  ← Slow stage!
+  
+Job 1: ████ (8s)
+  Stage 2: ████ (8s)
+```
+
+Red Flags:
+❌ Jobs taking much longer than expected
+❌ High number of stages (> 100)
+❌ Stages not running in parallel
+
+STAGES TAB - DETAILED METRICS:
+-------------------------------
+
+┌─────────────────────────────────────────────────────────────────┐
+│                    STAGE METRICS DASHBOARD                      │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  Stage: Stage 5 (join)                                         │
+│  Status: ✅ Succeeded                                           │
+│  Duration: 2.3 min                                             │
+│                                                                 │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │ TASK METRICS                                            │   │
+│  ├─────────────────────────────────────────────────────────┤   │
+│  │ Total Tasks: 200                                        │   │
+│  │ Succeeded: 200  Failed: 0  Running: 0                   │   │
+│  │ Task Duration: min=2s, median=5s, max=45s ⚠️           │   │
+│  │                                                         │   │
+│  │ Task Timeline:                                          │   │
+│  │ [████████████████████████████████████████]              │   │
+│  │ └── Straggler task (45s) ──────────────┘               │   │
+│  │     ⚠️  10x slower than median!                         │   │
+│  └─────────────────────────────────────────────────────────┘   │
+│                                                                 │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │ SHUFFLE METRICS                                         │   │
+│  ├─────────────────────────────────────────────────────────┤   │
+│  │ Shuffle Read: 2.5 GB                                    │   │
+│  │ Shuffle Write: 1.8 GB                                   │   │
+│  │ Shuffle Spill (Memory): 500 MB ⚠️                       │   │
+│  │ Shuffle Spill (Disk): 2.1 GB   ❌ BAD!                 │   │
+│  └─────────────────────────────────────────────────────────┘   │
+│                                                                 │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │ MEMORY METRICS                                          │   │
+│  ├─────────────────────────────────────────────────────────┤   │
+│  │ Input Size: 3.2 GB                                      │   │
+│  │ Output Size: 1.5 GB                                     │   │
+│  │ Peak Execution Memory: 6.8 GB                           │   │
+│  └─────────────────────────────────────────────────────────┘   │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+
+Key Metrics Explained:
+----------------------
+
+1. **Task Duration Distribution**:
+   - Min: Fastest task
+   - Median: Typical task time
+   - Max: Slowest task (straggler)
+   
+   ⚠️  If max >> median: Data skew or resource contention
+
+2. **Shuffle Metrics**:
+   - Shuffle Read: Data read from other executors
+   - Shuffle Write: Data written for next stage
+   - Spill (Memory): Temp storage in memory (OK)
+   - Spill (Disk): Spilled to disk (SLOW! ❌)
+
+3. **Input/Output Size**:
+   - Input: Data read by stage
+   - Output: Data produced by stage
+   - Large input → Consider filtering earlier
+
+EXECUTORS TAB - RESOURCE MONITORING:
+-------------------------------------
+
+┌─────────────────────────────────────────────────────────────────┐
+│                    EXECUTORS DASHBOARD                          │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  Executor ID | Address        | Status | Memory   | Disk       │
+│  ──────────────────────────────────────────────────────────────│
+│  driver      | 192.168.1.10   | Active | 2.0 GB   | 0 B        │
+│  1           | 192.168.1.11   | Active | 8.0 GB   | 120 GB     │
+│  2           | 192.168.1.12   | Active | 7.8 GB   | 118 GB     │
+│  3           | 192.168.1.13   | Active | 0.2 GB ⚠️| 15 GB      │
+│  4           | 192.168.1.14   | Dead ❌|          |            │
+│                                                                 │
+│  Per-Executor Metrics:                                          │
+│  ┌──────────────────────────────────────────────────────────┐  │
+│  │ Executor 1                                               │  │
+│  │ ──────────────────────────────────────────────────────── │  │
+│  │ Tasks: 245 (Success: 245, Failed: 0)                    │  │
+│  │ Duration: 2.3 hours                                      │  │
+│  │ GC Time: 12 min (8.6% of total) ✅ Good                 │  │
+│  │ Input: 45 GB                                             │  │
+│  │ Shuffle Read: 12 GB                                      │  │
+│  │ Shuffle Write: 8 GB                                      │  │
+│  │ Memory Used: 6.5 GB / 8.0 GB (81%)                       │  │
+│  │ Disk Used: 120 GB                                        │  │
+│  └──────────────────────────────────────────────────────────┘  │
+│                                                                 │
+│  ┌──────────────────────────────────────────────────────────┐  │
+│  │ Executor 3  ⚠️  UNDERUTILIZED                            │  │
+│  │ ──────────────────────────────────────────────────────── │  │
+│  │ Tasks: 15 (Success: 15, Failed: 0)                      │  │
+│  │ Duration: 10 min                                         │  │
+│  │ GC Time: 5 min (50% of total) ❌ BAD!                   │  │
+│  │ Input: 2 GB                                              │  │
+│  │ Memory Used: 0.2 GB / 8.0 GB (2.5%)                      │  │
+│  │                                                           │  │
+│  │ Issue: Data skew → executor has very few tasks          │  │
+│  └──────────────────────────────────────────────────────────┘  │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+
+Red Flags:
+----------
+❌ **High GC Time** (> 10% of task time):
+   - Symptom: Executor spending too much time in garbage collection
+   - Cause: Insufficient memory or memory leaks
+   - Fix: Increase executor memory, reduce cached data
+
+❌ **Unbalanced Task Distribution**:
+   - Symptom: Some executors idle, others overloaded
+   - Cause: Data skew or wrong partition count
+   - Fix: Repartition data, use salting for skewed keys
+
+❌ **Dead Executors**:
+   - Symptom: Executor marked as "Dead"
+   - Cause: OOM, network issues, or task timeout
+   - Fix: Check logs, increase memory, check network
+
+STORAGE TAB - CACHE MONITORING:
+--------------------------------
+
+┌─────────────────────────────────────────────────────────────────┐
+│                     CACHED DATAFRAMES                           │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  RDD/DF Name       | Storage Level | Size     | Partitions     │
+│  ────────────────────────────────────────────────────────────  │
+│  customers         | Memory Only   | 2.5 GB   | 200            │
+│  orders_cached     | Memory & Disk | 8.2 GB   | 400            │
+│  large_dataset ⚠️  | Memory Only   | 15 GB    | 100 (50% cached)│
+│                                                                 │
+│  Details: large_dataset                                         │
+│  ┌──────────────────────────────────────────────────────────┐  │
+│  │ Storage Level: MEMORY_ONLY                               │  │
+│  │ Cached Partitions: 50 / 100 (50%)  ⚠️                   │  │
+│  │ Size in Memory: 7.5 GB / 15 GB                           │  │
+│  │ Size on Disk: 0 B                                        │  │
+│  │                                                           │  │
+│  │ Issue: Not enough memory → only 50% cached              │  │
+│  │ Solution:                                                │  │
+│  │   1. Increase executor memory                            │  │
+│  │   2. Use MEMORY_AND_DISK storage                         │  │
+│  │   3. Unpersist unused data                               │  │
+│  └──────────────────────────────────────────────────────────┘  │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+
+Storage Levels:
+```python
+# MEMORY_ONLY: Fast but limited by memory
+df.persist(StorageLevel.MEMORY_ONLY)
+
+# MEMORY_AND_DISK: Fallback to disk if OOM
+df.persist(StorageLevel.MEMORY_AND_DISK)
+
+# MEMORY_ONLY_SER: Serialized (more compact, slower access)
+df.persist(StorageLevel.MEMORY_ONLY_SER)
+
+# OFF_HEAP: Use off-heap memory (no GC overhead)
+df.persist(StorageLevel.OFF_HEAP)
+```
+
+SQL TAB - QUERY ANALYSIS:
+--------------------------
+
+Most important tab for DataFrame/SQL optimization!
+
+What to Look For:
+-----------------
+
+1. **Query Execution Time**:
+   - Duration per query
+   - Compare similar queries
+   - Identify slow queries
+
+2. **Physical Plan**:
+   - Operations performed
+   - Look for "Exchange" (= shuffle)
+   - Check join strategies (BroadcastHashJoin vs SortMergeJoin)
+
+3. **Metrics per Operation**:
+   - Number of rows
+   - Data size
+   - Time spent in each operation
+
+Example:
+```
+Query: SELECT category, SUM(sales) FROM orders GROUP BY category
+
+Execution Plan:
+┌────────────────────────────────────────────────────────────┐
+│ HashAggregate (final)                                      │
+│ • Output: [category, sum(sales)]                           │
+│ • Time: 500 ms                                             │
+│ • Rows: 10                                                 │
+└──────────────────┬─────────────────────────────────────────┘
+                   │
+┌──────────────────▼─────────────────────────────────────────┐
+│ Exchange (Shuffle)  ⚠️                                     │
+│ • Shuffle Read: 2.5 GB                                     │
+│ • Time: 8 seconds  ← BOTTLENECK!                           │
+└──────────────────┬─────────────────────────────────────────┘
+                   │
+┌──────────────────▼─────────────────────────────────────────┐
+│ HashAggregate (partial)                                    │
+│ • Time: 1 second                                           │
+│ • Rows: 10,000,000                                         │
+└──────────────────┬─────────────────────────────────────────┘
+                   │
+┌──────────────────▼─────────────────────────────────────────┐
+│ Scan Parquet                                               │
+│ • Time: 2 seconds                                          │
+│ • Rows: 10,000,000                                         │
+└────────────────────────────────────────────────────────────┘
+```
+
+Analysis: Shuffle is the bottleneck (8 seconds out of 11.5 total)
+
+PERFORMANCE DEBUGGING WORKFLOW:
+--------------------------------
+
+Step 1: Identify Slow Job
+```
+Jobs Tab → Find job with long duration
+```
+
+Step 2: Find Slow Stage
+```
+Stages Tab → Look at stage durations
+→ Identify stage taking most time
+```
+
+Step 3: Analyze Stage Metrics
+```
+Click on slow stage → Check:
+• Task duration distribution (stragglers?)
+• Shuffle metrics (spill to disk?)
+• Input/output sizes (too much data?)
+```
+
+Step 4: Check Executors
+```
+Executors Tab → Look for:
+• High GC time (> 10%)
+• Unbalanced task distribution
+• Dead executors
+```
+
+Step 5: Examine Query Plan
+```
+SQL Tab → Check:
+• Exchange operations (shuffles)
+• Join strategies
+• Filter pushdown
+```
+
+Step 6: Fix and Re-run
+```
+Apply optimization → Monitor improvement
+```
+
+COMMON PERFORMANCE ISSUES:
+---------------------------
+
+1. **Data Skew** (Unbalanced Partitions):
+
+Symptoms:
+- One task takes 10-100x longer than others
+- One executor has most of the data
+- High memory usage on one executor
+
+Detection:
+```
+Stages Tab → Task metrics:
+Min: 2s, Median: 3s, Max: 300s  ← Skew!
+```
+
+Solutions:
+```python
+# Add salt to skewed key
+from pyspark.sql.functions import rand, floor
+df = df.withColumn("salt", (floor(rand() * 10)).cast("int"))
+df = df.repartition("key", "salt")
+
+# Or use AQE (Spark 3.0+)
+spark.conf.set("spark.sql.adaptive.enabled", "true")
+spark.conf.set("spark.sql.adaptive.skewJoin.enabled", "true")
+```
+
+2. **Excessive Shuffles**:
+
+Symptoms:
+- Long shuffle read/write times
+- High network usage
+- Disk spill
+
+Detection:
+```
+SQL Tab → Look for many "Exchange" operations
+Stages Tab → High shuffle read/write sizes
+```
+
+Solutions:
+```python
+# Use broadcast joins
+result = large_df.join(broadcast(small_df), "key")
+
+# Filter early
+df = df.filter(col("date") > "2024-01-01").join(...)
+
+# Enable AQE
+spark.conf.set("spark.sql.adaptive.enabled", "true")
+```
+
+3. **Memory Issues**:
+
+Symptoms:
+- Executor OOM errors
+- High GC time (> 10%)
+- Disk spill (memory → disk)
+
+Detection:
+```
+Executors Tab → GC Time > 10%
+Stages Tab → Spill (Disk) > 0
+```
+
+Solutions:
+```python
+# Increase executor memory
+--executor-memory 16g  # was 8g
+
+# Reduce cached data
+df.unpersist()
+
+# Use off-heap memory
+--conf spark.memory.offHeap.enabled=true
+--conf spark.memory.offHeap.size=4g
+```
+
+4. **Too Many Small Files**:
+
+Symptoms:
+- Many tasks (> 10,000)
+- High task scheduling overhead
+- Slow reads
+
+Detection:
+```
+Stages Tab → Total Tasks: 50,000  ← Too many!
+Input: 500 MB across 50,000 files
+```
+
+Solutions:
+```python
+# Coalesce before writing
+df.coalesce(100).write.parquet("output")
+
+# Or repartition
+df.repartition(200).write.parquet("output")
+```
+
+MONITORING IN PRODUCTION:
+--------------------------
+
+1. **Enable Event Logs**:
+```python
+spark = SparkSession.builder \\
+    .config("spark.eventLog.enabled", "true") \\
+    .config("spark.eventLog.dir", "hdfs:///spark-logs") \\
+    .getOrCreate()
+```
+
+2. **Set Up History Server**:
+```bash
+# Start Spark History Server
+$SPARK_HOME/sbin/start-history-server.sh
+
+# Access: http://localhost:18080
+```
+
+3. **Configure Metrics**:
+```python
+spark.conf.set("spark.metrics.namespace", "myapp")
+spark.conf.set("spark.sql.adaptive.enabled", "true")
+```
+
+4. **Monitoring Tools**:
+- Ganglia: Cluster-wide metrics
+- Prometheus + Grafana: Custom dashboards
+- DataDog: APM integration
+- AWS CloudWatch: For EMR clusters
+
+KEY METRICS TO TRACK:
+----------------------
+
+✅ **Job-Level**:
+   - Job duration (target: < 5 min)
+   - Success rate (target: > 99%)
+   - Jobs per hour (throughput)
+
+✅ **Stage-Level**:
+   - Shuffle read/write sizes
+   - Spill to disk (target: 0)
+   - Task duration distribution
+
+✅ **Executor-Level**:
+   - GC time % (target: < 10%)
+   - Memory utilization (target: 70-85%)
+   - Task failures (target: 0)
+
+✅ **Query-Level**:
+   - Query execution time
+   - Number of shuffles
+   - Data scanned vs returned
+
+SPARK UI ACCESS:
+----------------
+
+Local Mode:
+```bash
+# Default: http://localhost:4040
+# If port taken: http://localhost:4041, 4042, etc.
+```
+
+Cluster Mode (YARN):
+```bash
+# While running:
+yarn application -status <app_id>
+# → Get Tracking URL
+
+# After completion:
+# History Server: http://<history-server>:18080
+```
+
+Kubernetes:
+```bash
+# Port-forward to driver pod
+kubectl port-forward <driver-pod> 4040:4040
+
+# Access: http://localhost:4040
+```
+
+EXPLAIN() FOR MONITORING:
+--------------------------
+
+Always use explain() to preview query plan:
+
+```python
+# Simple explain
+df.groupBy("category").count().explain()
+
+# Extended explain (all plans)
+df.groupBy("category").count().explain(mode="extended")
+
+# Cost-based explain (statistics)
+df.groupBy("category").count().explain(mode="cost")
+
+# Formatted explain (Spark 3.0+)
+df.groupBy("category").count().explain(mode="formatted")
+```
+
+Look for:
+• Number of stages
+• Exchange operations (shuffles)
+• Join strategies
+• Estimated data sizes
+
+PRODUCTION CHECKLIST:
+---------------------
+
+✅ Monitoring Setup:
+   - Event logs enabled
+   - History server running
+   - Alerts configured
+   - Metrics collection
+
+✅ Regular Checks:
+   - Review slow queries daily
+   - Monitor executor failures
+   - Track memory usage trends
+   - Analyze shuffle patterns
+
+✅ Optimization:
+   - Enable AQE (Spark 3.0+)
+   - Configure appropriate partitions
+   - Use broadcast joins
+   - Cache wisely
+
+✅ Alerting:
+   - Job failures
+   - Executor OOM
+   - High GC time
+   - Abnormal duration
+
+See Also:
+---------
+• 08_shuffle_optimization.py - Reduce shuffles
+• 07_resource_management.py - Memory tuning
+• 05_fault_tolerance.py - Handle failures
+• ../spark_execution_architecture/ - Execution internals
 """
+
+import time
 
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import col, rand
-import time
 
 
 def create_spark():
-    return SparkSession.builder \
-        .appName("ClusterMonitoring") \
-        .master("local[4]") \
-        .config("spark.ui.port", "4040") \
-        .config("spark.eventLog.enabled", "true") \
+    return (
+        SparkSession.builder.appName("ClusterMonitoring")
+        .master("local[4]")
+        .config("spark.ui.port", "4040")
+        .config("spark.eventLog.enabled", "true")
         .getOrCreate()
+    )
 
 
 def demonstrate_spark_ui_overview():
@@ -27,8 +640,9 @@ def demonstrate_spark_ui_overview():
     print("=" * 70)
     print("1. SPARK UI OVERVIEW")
     print("=" * 70)
-    
-    print("""
+
+    print(
+        """
 🖥️  Spark UI: Your monitoring dashboard
 
 Access:
@@ -91,7 +705,8 @@ History Server: http://<history-server>:18080
    - Processing rate
    
    Use for: Streaming performance
-    """)
+    """
+    )
 
 
 def demonstrate_stages_tab_metrics(spark):
@@ -99,8 +714,9 @@ def demonstrate_stages_tab_metrics(spark):
     print("\n" + "=" * 70)
     print("2. STAGES TAB METRICS")
     print("=" * 70)
-    
-    print("""
+
+    print(
+        """
 📊 Key Metrics to Monitor:
 
 1. **Duration**
@@ -147,16 +763,16 @@ Analysis:
 ✅ Stage 0: Clean (no spill)
 ❌ Stage 1: 2 GB spill to disk! Increase memory or partitions
 ✅ Stage 2: Clean
-    """)
-    
+    """
+    )
+
     # Generate some data to monitor
     print("\n📊 Generating sample workload to monitor...")
-    data = spark.range(1, 5000001).toDF("id") \
-        .withColumn("value", rand() * 1000)
-    
+    data = spark.range(1, 5000001).toDF("id").withColumn("value", rand() * 1000)
+
     result = data.groupBy((col("id") % 100).alias("bucket")).count()
     result.collect()
-    
+
     print("\n✅ Check Spark UI at http://localhost:4040")
     print("   → Go to 'Stages' tab")
     print("   → Click on latest stage")
@@ -168,8 +784,9 @@ def demonstrate_task_metrics():
     print("\n" + "=" * 70)
     print("3. TASK-LEVEL METRICS")
     print("=" * 70)
-    
-    print("""
+
+    print(
+        """
 🔬 Task Details (Click on stage → Task table):
 
 Columns to Watch:
@@ -241,7 +858,8 @@ Task | Shuffle Read
 2    | 2 GB  ← 90% of data in one partition!
 3    | 55 MB
 ❌ Skewed! Use salting technique
-    """)
+    """
+    )
 
 
 def demonstrate_executor_metrics(spark):
@@ -249,8 +867,9 @@ def demonstrate_executor_metrics(spark):
     print("\n" + "=" * 70)
     print("4. EXECUTOR METRICS")
     print("=" * 70)
-    
-    print("""
+
+    print(
+        """
 🖥️  Executors Tab Metrics:
 
 Key Columns:
@@ -313,7 +932,8 @@ Analysis:
    - 45% GC time (memory pressure)
    
 Action: Check executor logs, may need restart or more memory
-    """)
+    """
+    )
 
 
 def demonstrate_sql_query_plan(spark):
@@ -321,8 +941,9 @@ def demonstrate_sql_query_plan(spark):
     print("\n" + "=" * 70)
     print("5. SQL QUERY PLANS")
     print("=" * 70)
-    
-    print("""
+
+    print(
+        """
 🗺️  Query Plan Visualization:
 
 SQL Tab shows:
@@ -385,15 +1006,19 @@ Exchange hashpartitioning (50 partitions) ← Better!
 Or even better:
 ---------------
 BroadcastHashJoin ← No shuffle at all!
-    """)
-    
+    """
+    )
+
     # Demonstrate explain
     print("\n💻 Example: Using .explain()")
-    data = spark.range(10000).toDF("id") \
+    data = (
+        spark.range(10000)
+        .toDF("id")
         .withColumn("category", (col("id") % 10).cast("int"))
-    
+    )
+
     result = data.filter(col("id") > 5000).groupBy("category").count()
-    
+
     print("\nPhysical Plan:")
     result.explain()
 
@@ -403,8 +1028,9 @@ def demonstrate_monitoring_best_practices():
     print("\n" + "=" * 70)
     print("6. MONITORING BEST PRACTICES")
     print("=" * 70)
-    
-    print("""
+
+    print(
+        """
 🎯 Monitoring Checklist:
 
 Daily Checks:
@@ -544,7 +1170,8 @@ grep "Task.*took" executor-*.log | sort -k4 -n | tail -10
 
 # Check shuffle errors
 grep "shuffle" executor-*.log | grep -i error
-    """)
+    """
+    )
 
 
 def demonstrate_common_issues():
@@ -552,8 +1179,9 @@ def demonstrate_common_issues():
     print("\n" + "=" * 70)
     print("7. COMMON ISSUES & SOLUTIONS")
     print("=" * 70)
-    
-    print("""
+
+    print(
+        """
 🐛 Issue 1: Job Stuck / Very Slow
 
 Symptoms:
@@ -681,17 +1309,18 @@ Solutions:
 ✅ Use off-heap memory
 ✅ Tune GC settings (G1GC recommended)
 ✅ Increase partitions to reduce per-task memory
-    """)
+    """
+    )
 
 
 def main():
     spark = create_spark()
-    
+
     print("📊 CLUSTER MONITORING")
     print("=" * 70)
     print("\nMaster Spark UI and performance debugging!")
     print()
-    
+
     demonstrate_spark_ui_overview()
     demonstrate_stages_tab_metrics(spark)
     demonstrate_task_metrics()
@@ -699,7 +1328,7 @@ def main():
     demonstrate_sql_query_plan(spark)
     demonstrate_monitoring_best_practices()
     demonstrate_common_issues()
-    
+
     print("\n" + "=" * 70)
     print("✅ CLUSTER MONITORING DEMO COMPLETE!")
     print("=" * 70)
@@ -712,7 +1341,7 @@ def main():
     print("   6. Set up alerts for failures and slow jobs")
     print("   7. Regular log review prevents issues")
     print("\n🖥️  Access Spark UI: http://localhost:4040")
-    
+
     spark.stop()
 
 
