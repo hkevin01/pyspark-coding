@@ -45,6 +45,8 @@ This folder contains examples of using **PySpark on distributed clusters** to pr
 
 ## 📦 Examples in This Folder
 
+### Core Cluster Computing Concepts
+
 ### 1. **01_cluster_setup.py**
 - Configure Spark for cluster mode
 - Set executor memory, cores, and parallelism
@@ -91,6 +93,66 @@ This folder contains examples of using **PySpark on distributed clusters** to pr
 - Spark UI metrics
 - Track executor utilization
 - Identify bottlenecks
+
+### Real Cluster Deployments (NEW!)
+
+### 10. **10_yarn_cluster_example.py** ⭐ NEW
+- Complete YARN cluster configuration
+- Dynamic allocation with shuffle service
+- Queue management for multi-tenancy
+- Real ETL pipeline on YARN
+- Production spark-submit examples
+- **Best for:** Enterprise Hadoop clusters, 100+ nodes
+
+### 11. **11_kubernetes_cluster_example.py** ⭐ NEW
+- Kubernetes-native Spark deployment
+- Complete YAML manifests (namespace, RBAC, service accounts)
+- Pod-based executor management
+- Resource requests and limits
+- Container image configuration
+- **Best for:** Cloud deployments (EKS, GKE, AKS), 10-1000 nodes
+
+### 12. **12_standalone_cluster_example.py** ⭐ NEW
+- Spark Standalone cluster setup (simplest option)
+- Master and worker configuration scripts
+- No external dependencies (no Hadoop, no K8s)
+- Complete setup/monitoring guide
+- **Best for:** Small clusters, dev/test, on-premises, < 100 nodes
+
+📖 **See also:** `CLUSTER_MANAGERS_GUIDE.md` for detailed comparison and decision matrix
+
+### Architecture Fundamentals (Interview Essentials)
+
+### 13. **13_driver_responsibilities.py** 🎯 NEW
+- What the Spark Driver does
+- SparkSession creation and configuration
+- Logical plan building (lazy evaluation)
+- Job/stage/task splitting
+- Task scheduling with locality awareness
+- Result collection (with OOM warnings)
+- Broadcast variable management
+- Executor monitoring and health tracking
+- **Best for:** Understanding Spark architecture, interview prep
+
+### 14. **14_executor_responsibilities.py** 🎯 NEW
+- What Spark Executors do
+- Execute tasks on data partitions
+- Cache/persist partitions (memory/disk)
+- Shuffle read/write operations
+- Unified memory management
+- Fault tolerance and recovery
+- Task execution lifecycle
+- **Best for:** Understanding distributed execution, debugging performance
+
+### 15. **15_dag_lazy_evaluation.py** 🎯 NEW
+- DAG (Directed Acyclic Graph) building
+- Lazy evaluation explained
+- Transformations vs actions
+- Catalyst optimizer optimizations
+- Logical vs physical plans
+- Stage boundaries at shuffles
+- DAG reuse with caching
+- **Best for:** Query optimization, understanding execution flow
 
 ---
 

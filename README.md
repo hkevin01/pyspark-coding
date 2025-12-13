@@ -293,11 +293,11 @@ sequenceDiagram
 <div align="center">
 
 ### **🚀 NEW: Production-Grade Distributed Computing**
-**9 Complete Examples | GPU Acceleration | Cloud-Ready Architecture**
+**15 Complete Examples | GPU Acceleration | Cloud-Ready Architecture | Interview Prep**
 
 </div>
 
-We've added a comprehensive **Cluster Computing** package with 9 production-grade examples demonstrating real-world distributed Spark patterns. This package takes you from cluster setup to GPU-accelerated inference, with performance optimizations and monitoring strategies used in production environments.
+We've added a comprehensive **Cluster Computing** package with 15 production-grade examples demonstrating real-world distributed Spark patterns. This package takes you from cluster setup to GPU-accelerated inference, with performance optimizations, real cluster deployments (YARN/Kubernetes/Standalone), and fundamental architecture concepts for interview preparation.
 
 ### **📦 Package Overview**
 
@@ -312,6 +312,12 @@ We've added a comprehensive **Cluster Computing** package with 9 production-grad
 | **07** | Resource Management | 30-50% cost savings | Memory tuning, dynamic allocation, executor sizing |
 | **08** | Shuffle Optimization | 2-10x speedup | Minimize shuffles, AQE, bucketing strategies |
 | **09** | Cluster Monitoring | Faster debugging | Spark UI mastery, metrics interpretation |
+| **10** | **YARN Cluster Deployment** | Production-ready | Enterprise Hadoop clusters, queue management |
+| **11** | **Kubernetes Deployment** | Cloud-native | EKS/GKE/AKS deployments with YAML manifests |
+| **12** | **Standalone Cluster** | Simplest setup | On-premises, dev/test environments |
+| **13** | **Driver Responsibilities** | Interview prep | Architecture understanding, task coordination |
+| **14** | **Executor Responsibilities** | Interview prep | Task execution, caching, shuffle operations |
+| **15** | **DAG & Lazy Evaluation** | Interview prep | Query optimization, Catalyst optimizer |
 
 ### **🎯 Key Highlights**
 
@@ -434,6 +440,15 @@ pyspark-coding/
 │   │   ├── QUICKSTART.md          # Getting started
 │   │   ├── GPU_QUICKSTART.md      # GPU acceleration guide
 │   │   └── FINAL_SUMMARY.md       # Complete package overview
+│   │
+│   ├── rdd_operations/            # ⭐ NEW: RDD (Low-Level) Operations
+│   │   ├── 01_transformations_lowlevel_part1.py  # map, flatMap, filter, mapPartitions
+│   │   ├── 02_transformations_lowlevel_part2.py  # distinct, union, intersection, subtract
+│   │   ├── 03_transformations_joins.py           # join, leftOuterJoin, cogroup
+│   │   ├── 04_actions_aggregations.py            # reduce, fold, aggregate, collect
+│   │   ├── 05_shuffle_and_key_operations.py      # reduceByKey, groupByKey, combiner optimization
+│   │   ├── 06_partitions_sorting_ranking.py      # repartition, coalesce, sortByKey, sampling
+│   │   └── README.md              # Comprehensive RDD guide
 │   │
 │   ├── pyspark_pytorch/           # PySpark + PyTorch integration
 │   │   ├── 01_dataframe_to_tensor.py      # Convert DataFrames to tensors
@@ -1836,13 +1851,14 @@ graph TB
 
 | Metric | Count | Description |
 |--------|-------|-------------|
-| **Python Files** | 34+ | Source code modules |
+| **Python Files** | 46+ | Source code modules |
 | **Jupyter Notebooks** | 10+ | Interactive tutorials |
 | **UDF Examples** | 7 | Production ML patterns |
-| **Cluster Computing Examples** | **9 NEW** | Distributed Spark patterns |
+| **Cluster Computing Examples** | **15** | Distributed Spark patterns + architecture |
+| **RDD Operations Examples** | **6 NEW** | Low-level RDD transformations & actions |
 | **Test Cases** | 50+ | Unit + integration tests |
-| **Documentation Pages** | 11 | Technical guides (3 new) |
-| **Code Lines** | 9,200+ | Production-grade code |
+| **Documentation Pages** | 13 | Technical guides (5 new) |
+| **Code Lines** | 14,400+ | Production-grade code |
 | **Dataset Samples** | 4 | Ready-to-use data |
 | **Performance Optimizations** | **15+ NEW** | GPU, shuffle, memory tuning |
 
@@ -1857,11 +1873,13 @@ graph TB
 - ✅ Comprehensive documentation
 - ✅ Docker containerization
 - ✅ Test suite
-- ✅ **NEW: 9 Cluster Computing examples**
+- ✅ **NEW: 15 Cluster Computing examples**
 - ✅ **NEW: GPU-accelerated inference (10-100x speedup)**
 - ✅ **NEW: Cloud provider comparison (AWS/GCP/Azure)**
 - ✅ **NEW: Production optimization patterns**
 - ✅ **NEW: Cluster monitoring & debugging**
+- ✅ **NEW: Real cluster deployments (YARN/K8s/Standalone)**
+- ✅ **NEW: Architecture fundamentals (Driver/Executor/DAG)**
 
 ### **Planned Features (v2.0)**
 - 🔄 Delta Lake integration
