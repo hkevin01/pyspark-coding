@@ -17,6 +17,7 @@
 ## 📋 Table of Contents
 
 - [Project Purpose & Vision](#-project-purpose--vision)
+- [🆕 Complete PySpark Curriculum](#-complete-pyspark-curriculum)
 - [Technology Stack & Architecture](#-technology-stack--architecture)
 - [⭐ What's New - Cluster Computing Package](#-whats-new---cluster-computing-package)
 - [Project Structure](#-project-structure)
@@ -357,6 +358,42 @@ Quick reference guide for choosing between GPU and CPU acceleration:
 
 📄 See: `docs/gpu_vs_cpu_decision_matrix.md`
 
+---
+
+## 🆕 Complete PySpark Curriculum
+
+### **Master Guide: Everything You Need to Know**
+
+This project now includes a **comprehensive 47 KB master curriculum** covering 100+ topics across 7 major areas:
+
+📚 **[PYSPARK_MASTER_CURRICULUM.md](PYSPARK_MASTER_CURRICULUM.md)** - Your complete PySpark reference
+
+#### **Topics Covered:**
+
+1. **RDD Operations** (Foundation) - 6 examples + comprehensive guide
+2. **HDFS** (Storage Layer) - 70 KB complete guide with CLI operations
+3. **PyCharm** (Development) - Installation, basics, runtime arguments
+4. **Spark Architecture** - DAG, schedulers, YARN, JVMs
+5. **Spark Session** - All operations (createDataFrame, read, catalog, UDF)
+6. **DataFrame ETL** - Complete guide (40+ topics)
+7. **Optimization** - Join strategies, configurations, memory management
+
+#### **Quick Navigation:**
+
+| Package | Guide | Topics |
+|---------|-------|--------|
+| **RDD Operations** | [src/rdd_operations/](src/rdd_operations/) | Transformations, actions, shuffle optimization |
+| **HDFS** | [src/hdfs/](src/hdfs/) | Architecture, blocks, replication, CLI |
+| **PyCharm** | [src/pycharm/](src/pycharm/) | IDE setup and configuration |
+| **Architecture** | [src/spark_execution_architecture/](src/spark_execution_architecture/) | DAG, schedulers, execution |
+| **Spark Session** | [src/spark_session/](src/spark_session/) | Session operations, reads, UDFs |
+| **DataFrame ETL** | [src/dataframe_etl/](src/dataframe_etl/) | All DataFrame operations |
+| **Optimization** | [src/optimization/](src/optimization/) | Performance tuning |
+
+📖 **See also:** [CURRICULUM_COMPLETION_SUMMARY.md](CURRICULUM_COMPLETION_SUMMARY.md) for detailed learning roadmap
+
+---
+
 #### **4. Production Optimization Patterns**
 Real techniques used in production environments:
 - **Adaptive Query Execution (AQE)**: Automatic 2-10x optimization in Spark 3.0+
@@ -448,7 +485,29 @@ pyspark-coding/
 │   │   ├── 04_actions_aggregations.py            # reduce, fold, aggregate, collect
 │   │   ├── 05_shuffle_and_key_operations.py      # reduceByKey, groupByKey, combiner optimization
 │   │   ├── 06_partitions_sorting_ranking.py      # repartition, coalesce, sortByKey, sampling
-│   │   └── README.md              # Comprehensive RDD guide
+│   │   ├── RDD_CONCEPTS.md        # What is RDD, properties, when to use
+│   │   ├── README.md              # Comprehensive RDD guide
+│   │   └── COMPLETION_SUMMARY.md  # Package summary
+│   │
+│   ├── hdfs/                      # ⭐ NEW: HDFS Complete Guide
+│   │   ├── HDFS_COMPLETE_GUIDE.md # All HDFS topics (70 KB comprehensive)
+│   │   ├── 01_hdfs_overview.md    # What is HDFS and Why HDFS
+│   │   └── README.md              # Quick reference
+│   │
+│   ├── pycharm/                   # ⭐ NEW: PyCharm IDE Setup
+│   │   └── README.md              # Installation, basics, runtime args
+│   │
+│   ├── spark_execution_architecture/  # ⭐ NEW: Spark Architecture Deep Dive
+│   │   └── README.md              # DAG, schedulers, YARN, JVMs
+│   │
+│   ├── spark_session/             # ⭐ NEW: Spark Session Operations
+│   │   └── README.md              # createDataFrame, read, catalog, UDF
+│   │
+│   ├── dataframe_etl/             # ⭐ NEW: DataFrame ETL Complete Guide
+│   │   └── README.md              # Selection, filter, join, window, built-in functions
+│   │
+│   ├── optimization/              # ⭐ NEW: Performance Optimization
+│   │   └── README.md              # Join strategies, configs, memory management
 │   │
 │   ├── pyspark_pytorch/           # PySpark + PyTorch integration
 │   │   ├── 01_dataframe_to_tensor.py      # Convert DataFrames to tensors
@@ -1855,12 +1914,14 @@ graph TB
 | **Jupyter Notebooks** | 10+ | Interactive tutorials |
 | **UDF Examples** | 7 | Production ML patterns |
 | **Cluster Computing Examples** | **15** | Distributed Spark patterns + architecture |
-| **RDD Operations Examples** | **6 NEW** | Low-level RDD transformations & actions |
+| **RDD Operations Examples** | **6** | Low-level RDD transformations & actions |
 | **Test Cases** | 50+ | Unit + integration tests |
-| **Documentation Pages** | 13 | Technical guides (5 new) |
+| **Documentation Pages** | **23** | Technical guides + master curriculum |
+| **Master Curriculum Guide** | **1 (47 KB)** | Complete PySpark reference |
 | **Code Lines** | 14,400+ | Production-grade code |
 | **Dataset Samples** | 4 | Ready-to-use data |
-| **Performance Optimizations** | **15+ NEW** | GPU, shuffle, memory tuning |
+| **Topics Covered** | **100+** | RDD, HDFS, Architecture, Session, ETL, Optimization |
+| **Performance Optimizations** | **15+** | GPU, shuffle, memory tuning |
 
 ---
 
