@@ -1,0 +1,346 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
+<!--
+   Hive Configuration Example
+   
+   This file should be placed in:
+   • $HIVE_HOME/conf/hive-site.xml
+   • $SPARK_HOME/conf/hive-site.xml (for PySpark integration)
+   
+   For production use, customize the settings below based on your environment.
+-->
+<configuration>
+  
+  <!-- ============================================================ -->
+  <!-- METASTORE CONFIGURATION                                      -->
+  <!-- ============================================================ -->
+  
+  <!-- Metastore connection URI -->
+  <property>
+    <name>hive.metastore.uris</name>
+    <value>thrift://localhost:9083</value>
+    <description>
+      URI of the Hive metastore service.
+      Format: thrift://hostname:port
+      Default port: 9083
+      
+      For multiple metastores (HA):
+      thrift://metastore1:9083,thrift://metastore2:9083
+    </description>
+  </property>
+  
+  <!-- Metastore warehouse directory -->
+  <property>
+    <name>hive.metastore.warehouse.dir</name>
+    <value>/user/hive/warehouse</value>
+    <description>
+      Default location for managed Hive tables.
+      This is a directory in HDFS or local filesystem.
+      
+      Common values:
+      • HDFS: hdfs://namenode:8020/user/hive/warehouse
+      • Local: file:///tmp/hive-warehouse
+      • S3: s3a://my-bucket/hive-warehouse
+    </description>
+  </property>
+  
+  <!-- ============================================================ -->
+  <!-- METASTORE DATABASE (Backend Storage)                         -->
+  <!-- ============================================================ -->
+  
+  <!-- Derby (embedded) - NOT for production -->
+  <property>
+    <name>javax.jdo.option.ConnectionURL</name>
+    <value>jdbc:derby:;databaseName=metastore_db;create=true</value>
+    <description>
+      Derby embedded database - single user only.
+      For production, use MySQL, PostgreSQL, or Oracle.
+    </description>
+  </property>
+  
+  <!-- MySQL Example (uncomment for production) -->
+  <!--
+  <property>
+    <name>javax.jdo.option.ConnectionURL</name>
+    <value>jdbc:mysql://localhost:3306/hive_metastore?createDatabaseIfNotExist=true</value>
+    <description>MySQL metastore database connection</description>
+  </property>
+  
+  <property>
+    <name>javax.jdo.option.ConnectionDriverName</name>
+    <value>com.mysql.cj.jdbc.Driver</value>
+    <description>MySQL JDBC driver</description>
+  </property>
+  
+  <property>
+    <name>javax.jdo.option.ConnectionUserName</name>
+    <value>hive</value>
+    <description>MySQL database username</description>
+  </property>
+  
+  <property>
+    <name>javax.jdo.option.ConnectionPassword</name>
+    <value>hive_password</value>
+    <description>MySQL database password</description>
+  </property>
+  -->
+  
+  <!-- PostgreSQL Example (uncomment for production) -->
+  <!--
+  <property>
+    <name>javax.jdo.option.ConnectionURL</name>
+    <value>jdbc:postgresql://localhost:5432/hive_metastore</value>
+    <description>PostgreSQL metastore database connection</description>
+  </property>
+  
+  <property>
+    <name>javax.jdo.option.ConnectionDriverName</name>
+    <value>org.postgresql.Driver</value>
+    <description>PostgreSQL JDBC driver</description>
+  </property>
+  
+  <property>
+    <name>javax.jdo.option.ConnectionUserName</name>
+    <value>hive</value>
+    <description>PostgreSQL database username</description>
+  </property>
+  
+  <property>
+    <name>javax.jdo.option.ConnectionPassword</name>
+    <value>hive_password</value>
+    <description>PostgreSQL database password</description>
+  </property>
+  -->
+  
+  <!-- ============================================================ -->
+  <!-- EXECUTION ENGINE                                             -->
+  <!-- ============================================================ -->
+  
+  <property>
+    <name>hive.execution.engine</name>
+    <value>spark</value>
+    <description>
+      Execution engine for Hive queries.
+      Options: mr (MapReduce), tez, spark
+      
+      • mr: Original MapReduce (slow, deprecated)
+      • tez: Apache Tez (faster than MR)
+      • spark: Apache Spark (fastest, recommended)
+    </description>
+  </property>
+  
+  <!-- ============================================================ -->
+  <!-- SPARK CONFIGURATION (when using Spark as execution engine)   -->
+  <!-- ============================================================ -->
+  
+  <property>
+    <name>spark.master</name>
+    <value>local[*]</value>
+    <description>
+      Spark master URL.
+      • local[*]: Local mode with all cores
+      • spark://hostname:7077: Standalone cluster
+      • yarn: YARN cluster
+      • mesos://hostname:5050: Mesos cluster
+    </description>
+  </property>
+  
+  <property>
+    <name>spark.eventLog.enabled</name>
+    <value>true</value>
+    <description>Enable Spark event logging for UI history</description>
+  </property>
+  
+  <property>
+    <name>spark.eventLog.dir</name>
+    <value>hdfs://namenode:8020/spark-logs</value>
+    <description>Directory for Spark event logs</description>
+  </property>
+  
+  <!-- ============================================================ -->
+  <!-- PERFORMANCE TUNING                                           -->
+  <!-- ============================================================ -->
+  
+  <property>
+    <name>hive.exec.parallel</name>
+    <value>true</value>
+    <description>
+      Enable parallel execution of stages.
+      Can improve performance for complex queries.
+    </description>
+  </property>
+  
+  <property>
+    <name>hive.exec.parallel.thread.number</name>
+    <value>8</value>
+    <description>Number of parallel execution threads</description>
+  </property>
+  
+  <property>
+    <name>hive.vectorized.execution.enabled</name>
+    <value>true</value>
+    <description>
+      Enable vectorized query execution.
+      Processes batches of rows together for better CPU utilization.
+    </description>
+  </property>
+  
+  <property>
+    <name>hive.optimize.ppd</name>
+    <value>true</value>
+    <description>
+      Predicate pushdown optimization.
+      Pushes WHERE clause filters down to scan level.
+    </description>
+  </property>
+  
+  <property>
+    <name>hive.optimize.index.filter</name>
+    <value>true</value>
+    <description>Use indexes for filtering when available</description>
+  </property>
+  
+  <!-- ============================================================ -->
+  <!-- PARTITIONING AND BUCKETING                                   -->
+  <!-- ============================================================ -->
+  
+  <property>
+    <name>hive.exec.dynamic.partition</name>
+    <value>true</value>
+    <description>Enable dynamic partitioning</description>
+  </property>
+  
+  <property>
+    <name>hive.exec.dynamic.partition.mode</name>
+    <value>nonstrict</value>
+    <description>
+      Dynamic partition mode.
+      • strict: At least one static partition required
+      • nonstrict: All partitions can be dynamic
+    </description>
+  </property>
+  
+  <property>
+    <name>hive.exec.max.dynamic.partitions</name>
+    <value>1000</value>
+    <description>Maximum number of dynamic partitions per node</description>
+  </property>
+  
+  <property>
+    <name>hive.enforce.bucketing</name>
+    <value>true</value>
+    <description>Enforce bucketing on sorted tables</description>
+  </property>
+  
+  <!-- ============================================================ -->
+  <!-- FILE FORMATS                                                 -->
+  <!-- ============================================================ -->
+  
+  <property>
+    <name>hive.default.fileformat</name>
+    <value>TextFile</value>
+    <description>
+      Default file format for new tables.
+      Options: TextFile, SequenceFile, RCFile, ORC, Parquet
+      
+      Recommendations:
+      • ORC: Best for Hive, good compression
+      • Parquet: Best for Spark, cross-platform
+      • TextFile: Human-readable, no compression
+    </description>
+  </property>
+  
+  <property>
+    <name>hive.exec.compress.output</name>
+    <value>true</value>
+    <description>Compress final output of Hive queries</description>
+  </property>
+  
+  <property>
+    <name>hive.exec.compress.intermediate</name>
+    <value>true</value>
+    <description>Compress intermediate files during query execution</description>
+  </property>
+  
+  <!-- ============================================================ -->
+  <!-- SECURITY AND AUTHENTICATION                                  -->
+  <!-- ============================================================ -->
+  
+  <property>
+    <name>hive.metastore.sasl.enabled</name>
+    <value>false</value>
+    <description>
+      Enable SASL authentication for metastore.
+      Set to true for production Kerberos environments.
+    </description>
+  </property>
+  
+  <property>
+    <name>hive.server2.authentication</name>
+    <value>NONE</value>
+    <description>
+      HiveServer2 authentication mode.
+      Options: NONE, NOSASL, KERBEROS, LDAP, CUSTOM
+    </description>
+  </property>
+  
+  <property>
+    <name>hive.security.authorization.enabled</name>
+    <value>false</value>
+    <description>Enable Hive authorization</description>
+  </property>
+  
+  <!-- ============================================================ -->
+  <!-- LOGGING AND DEBUGGING                                        -->
+  <!-- ============================================================ -->
+  
+  <property>
+    <name>hive.exec.scratchdir</name>
+    <value>/tmp/hive</value>
+    <description>
+      Scratch directory for Hive jobs.
+      Used for temporary files during query execution.
+    </description>
+  </property>
+  
+  <property>
+    <name>hive.querylog.location</name>
+    <value>/tmp/hive/querylog</value>
+    <description>Directory for query logs</description>
+  </property>
+  
+  <property>
+    <name>hive.server2.logging.operation.enabled</name>
+    <value>true</value>
+    <description>Enable HiveServer2 operation logging</description>
+  </property>
+  
+  <!-- ============================================================ -->
+  <!-- COMMON CONFIGURATIONS FOR PYSPARK INTEGRATION                -->
+  <!-- ============================================================ -->
+  
+  <property>
+    <name>hive.metastore.schema.verification</name>
+    <value>false</value>
+    <description>
+      Disable strict schema verification.
+      Useful for development but enable in production.
+    </description>
+  </property>
+  
+  <property>
+    <name>datanucleus.autoCreateSchema</name>
+    <value>true</value>
+    <description>
+      Auto-create metastore schema tables.
+      Set to false in production after initial setup.
+    </description>
+  </property>
+  
+  <property>
+    <name>hive.metastore.client.socket.timeout</name>
+    <value>600</value>
+    <description>Metastore client socket timeout in seconds</description>
+  </property>
+  
+</configuration>
