@@ -33,27 +33,24 @@ Why PySpark for Research?
 
 __all__ = [
     # Comprehensive examples
-    '01_genomics_bioinformatics',
-    '02_climate_science',
-    
+    "01_genomics_bioinformatics",
+    "02_climate_science",
     # Quick research domain examples
-    '03_genomics_gwas',
-    '04_climate_warming',
-    '05_astronomy_exoplanets',
-    '06_social_sciences_survey',
-    '07_medical_clinical_trial',
-    '08_physics_particles',
-    '09_text_literature',
-    '10_economics_market',
-    
+    "03_genomics_gwas",
+    "04_climate_warming",
+    "05_astronomy_exoplanets",
+    "06_social_sciences_survey",
+    "07_medical_clinical_trial",
+    "08_physics_particles",
+    "09_text_literature",
+    "10_economics_market",
     # ML pipeline examples (PySpark → Pandas → ML)
-    '11_drug_discovery_ml',
-    '12_cancer_genomics_ml',
-    '13_medical_imaging_ml',
-    '14_recommendation_system_ml',
-    '15_fraud_detection_ml',
-    '16_sentiment_analysis_ml',
-    
+    "11_drug_discovery_ml",
+    "12_cancer_genomics_ml",
+    "13_medical_imaging_ml",
+    "14_recommendation_system_ml",
+    "15_fraud_detection_ml",
+    "16_sentiment_analysis_ml",
     # All examples showcase
-    '99_all_examples_showcase',
+    "99_all_examples_showcase",
 ]
