@@ -101,6 +101,7 @@ Reasons:
 | `02_spark_scala_basics.scala` | ~10 KB | Spark operations in Scala |
 | `03_scala_udfs.scala` | ~6 KB | User-Defined Functions (UDFs) |
 | `04_scala_pyspark_integration.py` | ~5 KB | Using Scala JARs from PySpark |
+| `05_graphframes_example.scala` | ~10 KB | Graph processing with GraphFrames |
 
 ### What's Covered
 
@@ -169,6 +170,37 @@ Reasons:
 - Calling Scala UDFs from Python
 - Mixing Scala and Python code
 - Best practices for integration
+
+#### 5. `05_graphframes_example.scala` - Graph Processing
+
+**Topics:**
+- Creating GraphFrames (vertices and edges)
+- Graph queries and filtering
+- Graph analytics (in-degree, out-degree, PageRank)
+- Subgraph creation
+- Graph algorithms (Connected Components, Triangle Counting)
+- Motif finding (pattern matching)
+- Shortest paths
+
+**Graph Algorithms:**
+- **PageRank**: Measure influence/importance
+- **Connected Components**: Find groups
+- **Triangle Counting**: Measure clustering
+- **Shortest Paths**: Find optimal routes
+- **Motif Finding**: Pattern matching in graphs
+
+**Real-World Applications:**
+- Social network analysis (Facebook, LinkedIn)
+- Fraud detection (transaction networks)
+- Recommendation systems
+- Knowledge graphs (Google)
+- Biological networks (protein interactions)
+
+**Installation:**
+```bash
+# Run with GraphFrames package
+spark-shell --packages graphframes:graphframes:0.8.2-spark3.2-s_2.12
+```
 
 ---
 
