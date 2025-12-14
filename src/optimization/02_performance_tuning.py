@@ -1,41 +1,288 @@
 """
-02_performance_tuning.py
-=========================
+================================================================================
+02_performance_tuning.py - Spark Performance Tuning and Configuration
+================================================================================
 
-Spark Performance Tuning and Configuration
+PURPOSE:
+--------
+Master Spark performance tuning to achieve 10-100x speedups and reduce cloud
+costs through proper configuration, memory management, and optimization
+techniques.
 
-Demonstrates:
-- Memory configuration
-- Parallelism tuning
-- Shuffle optimization
-- Caching strategies
-- Adaptive Query Execution (AQE)
+WHAT THIS DOES:
+---------------
+Comprehensive guide to Spark performance optimization:
+- Memory configuration (executor, driver, storage, execution)
+- Parallelism tuning (partitions, cores, tasks)
+- Shuffle optimization (partition size, compression)
+- Caching strategies (when to cache, storage levels)
+- Adaptive Query Execution (AQE) for automatic optimization
+
+WHY PERFORMANCE TUNING MATTERS:
+--------------------------------
+COST IMPACT:
+- Untuned Spark job: $500/day on cloud (10 hours × $50/hour)
+- Tuned Spark job: $50/day (1 hour × $50/hour)
+- SAVINGS: $450/day = $164K/year!
+
+TIME IMPACT:
+- Untuned: 10 hours (miss SLA, stale data)
+- Tuned: 1 hour (meet SLA, fresh data)
+- PRODUCTIVITY: 10x more experiments per day
+
+RESOURCE IMPACT:
+- Untuned: 100 executors × 10 hours = 1000 executor-hours
+- Tuned: 20 executors × 1 hour = 20 executor-hours
+- EFFICIENCY: 50x better resource utilization
+
+HOW IT WORKS:
+-------------
+1. UNDERSTAND WORKLOAD:
+   - CPU-bound (transformations) vs I/O-bound (shuffles)
+   - Memory requirements (caching, aggregations)
+   - Data size and skew
+   - Join patterns
+
+2. CONFIGURE RESOURCES:
+   - Set executor/driver memory
+   - Allocate cores per executor
+   - Configure partition count
+   - Enable compression
+
+3. MONITOR PERFORMANCE:
+   - Spark UI (stages, tasks, storage)
+   - Metrics (shuffle size, GC time, task duration)
+   - Identify bottlenecks (skew, spill, GC)
+
+4. OPTIMIZE ITERATIVELY:
+   - Fix one issue at a time
+   - Measure impact
+   - Repeat until goals met
+
+5. VALIDATE:
+   - Run on production data size
+   - Test with real query patterns
+   - Monitor in production
+
+KEY CONCEPTS:
+-------------
+
+1. MEMORY MODEL:
+   EXECUTOR MEMORY (e.g., 4GB total)
+   ├── RESERVED (300MB fixed, Spark overhead)
+   └── USABLE (3.7GB)
+       ├── SPARK MEMORY (60% = 2.22GB)
+       │   ├── STORAGE (50% = 1.11GB) - cache, broadcast
+       │   └── EXECUTION (50% = 1.11GB) - shuffle, join, sort
+       └── USER MEMORY (40% = 1.48GB) - UDFs, objects
+
+   KEY SETTINGS:
+   - spark.executor.memory: Total memory per executor
+   - spark.memory.fraction: % for Spark (default 0.6)
+   - spark.memory.storageFraction: % of Spark for storage (default 0.5)
+
+2. PARALLELISM:
+   - TASK: Smallest unit of work (1 partition = 1 task)
+   - CORE: Physical CPU that runs 1 task at a time
+   - EXECUTOR: JVM process with N cores
+   - PARTITION: Chunk of data processed by 1 task
+
+   OPTIMAL PARTITIONS:
+   - Too few: Underutilize cluster (waste resources)
+   - Too many: Task overhead dominates (slow)
+   - RULE OF THUMB: 2-4 partitions per core
+   - Example: 10 executors × 4 cores = 40 cores → 80-160 partitions
+
+3. SHUFFLE:
+   - WHAT: Redistribute data across executors
+   - WHY: Needed for groupBy, join, repartition
+   - COST: Network I/O, disk I/O, serialization
+   - OPTIMIZE: Reduce shuffle size, compress, tune partitions
+
+4. CACHING:
+   - WHAT: Persist DataFrame in memory/disk
+   - WHY: Avoid recomputation on reuse
+   - WHEN: DataFrame used 2+ times
+   - LEVELS:
+     * MEMORY_ONLY: Fast, but may evict
+     * MEMORY_AND_DISK: Spill to disk if needed
+     * DISK_ONLY: Slow, but guaranteed
+
+5. ADAPTIVE QUERY EXECUTION (AQE):
+   - WHAT: Runtime optimization based on statistics
+   - WHY: Adjust plan based on actual data
+   - FEATURES:
+     * Auto-coalesce partitions (merge small)
+     * Auto-optimize skew joins
+     * Auto-optimize join type
+   - ENABLE: spark.sql.adaptive.enabled = true
+
+PERFORMANCE TUNING CHECKLIST:
+------------------------------
+
+MEMORY:
+☐ Set executor memory: 4-16GB (not too large!)
+☐ Set driver memory: 2-8GB (enough for collect)
+☐ Configure memory fractions appropriately
+☐ Monitor GC time (< 10% of task time)
+
+PARALLELISM:
+☐ Set spark.sql.shuffle.partitions: 2-4× cores
+☐ Set spark.default.parallelism: 2-4× cores
+☐ Repartition skewed data
+☐ Coalesce after filters (reduce partitions)
+
+SHUFFLE:
+☐ Enable compression: spark.shuffle.compress = true
+☐ Tune buffer size: spark.shuffle.file.buffer = 128k
+☐ Filter before shuffle operations
+☐ Broadcast small tables in joins
+
+CACHING:
+☐ Cache DataFrames used 2+ times
+☐ Use appropriate storage level
+☐ Unpersist when done (free memory)
+☐ Monitor Storage tab in Spark UI
+
+OPTIMIZATION:
+☐ Enable AQE: spark.sql.adaptive.enabled = true
+☐ Use columnar formats: Parquet, ORC
+☐ Partition output by frequently filtered columns
+☐ Avoid UDFs (use native Spark functions)
+
+COMMON PERFORMANCE ISSUES:
+---------------------------
+
+1. OUT OF MEMORY (OOM):
+   SYMPTOMS: Executor/driver crashes, "heap space" errors
+   CAUSES: Cache too much, large broadcasts, UDF leaks
+   FIXES:
+   - Increase executor memory
+   - Reduce cached data
+   - Partition data smaller
+   - Fix memory leaks in UDFs
+
+2. DATA SKEW:
+   SYMPTOMS: One task takes 10x longer, stragglers
+   CAUSES: Uneven partition sizes (null keys, popular keys)
+   FIXES:
+   - Salting (add random suffix to key)
+   - Broadcast join instead
+   - Filter outliers before join
+   - Enable AQE skew join optimization
+
+3. SMALL FILES:
+   SYMPTOMS: 1000s of tasks, high overhead
+   CAUSES: Writing many small partitions
+   FIXES:
+   - Coalesce before writing
+   - Repartition to fewer partitions
+   - Use appropriate partition size (128MB-1GB)
+
+4. EXCESSIVE GC:
+   SYMPTOMS: Tasks slow, GC time > 10%
+   CAUSES: Too much memory pressure
+   FIXES:
+   - Increase executor memory
+   - Cache less data
+   - Tune memory fractions
+   - Use off-heap memory (advanced)
+
+5. SHUFFLE BOTTLENECK:
+   SYMPTOMS: Long shuffle read/write times
+   CAUSES: Large shuffles, too many partitions
+   FIXES:
+   - Filter before shuffle
+   - Broadcast small tables
+   - Reduce partition count
+   - Enable compression
+
+PERFORMANCE BENCHMARKS:
+-----------------------
+Operation on 1TB dataset:
+
+UNTUNED:
+- Partitions: 200 (default)
+- Memory: 1GB executors
+- Cache: None
+- Compression: Disabled
+- Time: 10 hours
+- Cost: $500
+
+TUNED:
+- Partitions: 400 (2× cores)
+- Memory: 8GB executors
+- Cache: Intermediate results
+- Compression: Enabled
+- AQE: Enabled
+- Time: 1 hour (10x faster!)
+- Cost: $80 (6x cheaper!)
+
+CONFIGURATION TEMPLATES:
+------------------------
+
+SMALL CLUSTER (local, testing):
+```python
+spark = SparkSession.builder \\
+    .config("spark.executor.memory", "2g") \\
+    .config("spark.driver.memory", "1g") \\
+    .config("spark.sql.shuffle.partitions", "8") \\
+    .getOrCreate()
+```
+
+MEDIUM CLUSTER (production, < 1TB):
+```python
+spark = SparkSession.builder \\
+    .config("spark.executor.memory", "8g") \\
+    .config("spark.executor.cores", "4") \\
+    .config("spark.executor.instances", "20") \\
+    .config("spark.sql.shuffle.partitions", "160") \\
+    .config("spark.sql.adaptive.enabled", "true") \\
+    .getOrCreate()
+```
+
+LARGE CLUSTER (production, > 1TB):
+```python
+spark = SparkSession.builder \\
+    .config("spark.executor.memory", "16g") \\
+    .config("spark.executor.cores", "5") \\
+    .config("spark.executor.instances", "100") \\
+    .config("spark.sql.shuffle.partitions", "1000") \\
+    .config("spark.sql.adaptive.enabled", "true") \\
+    .config("spark.sql.adaptive.coalescePartitions.enabled", "true") \\
+    .getOrCreate()
+```
+
+================================================================================
 """
 
-from pyspark.sql import SparkSession
-from pyspark.sql.functions import col, sum as _sum, avg, count
 import time
+
+from pyspark.sql import SparkSession
+from pyspark.sql.functions import avg, col, count
+from pyspark.sql.functions import sum as _sum
 
 
 def create_optimized_spark():
     """
     Create Spark session with optimized configuration.
     """
-    return SparkSession.builder \
-        .appName("PerformanceTuning") \
-        .master("local[*]") \
-        .config("spark.executor.memory", "2g") \
-        .config("spark.driver.memory", "1g") \
-        .config("spark.memory.fraction", "0.6") \
-        .config("spark.memory.storageFraction", "0.5") \
-        .config("spark.sql.shuffle.partitions", "8") \
-        .config("spark.default.parallelism", "8") \
-        .config("spark.sql.adaptive.enabled", "true") \
-        .config("spark.sql.adaptive.coalescePartitions.enabled", "true") \
-        .config("spark.sql.adaptive.skewJoin.enabled", "true") \
-        .config("spark.sql.autoBroadcastJoinThreshold", 10485760) \
-        .config("spark.serializer", "org.apache.spark.serializer.KryoSerializer") \
+    return (
+        SparkSession.builder.appName("PerformanceTuning")
+        .master("local[*]")
+        .config("spark.executor.memory", "2g")
+        .config("spark.driver.memory", "1g")
+        .config("spark.memory.fraction", "0.6")
+        .config("spark.memory.storageFraction", "0.5")
+        .config("spark.sql.shuffle.partitions", "8")
+        .config("spark.default.parallelism", "8")
+        .config("spark.sql.adaptive.enabled", "true")
+        .config("spark.sql.adaptive.coalescePartitions.enabled", "true")
+        .config("spark.sql.adaptive.skewJoin.enabled", "true")
+        .config("spark.sql.autoBroadcastJoinThreshold", 10485760)
+        .config("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
         .getOrCreate()
+    )
 
 
 def demonstrate_memory_tuning():
@@ -45,9 +292,10 @@ def demonstrate_memory_tuning():
     print("\n" + "=" * 80)
     print("MEMORY CONFIGURATION AND TUNING")
     print("=" * 80)
-    
+
     print("\n📊 SPARK MEMORY MODEL:")
-    print("""
+    print(
+        """
     ┌────────────────────────────────────────────────────────┐
     │              EXECUTOR MEMORY (e.g., 4GB)               │
     ├────────────────────────────────────────────────────────┤
@@ -92,10 +340,12 @@ def demonstrate_memory_tuning():
     │  └─────────────────────────────────────────────────┘  │
     │                                                        │
     └────────────────────────────────────────────────────────┘
-    """)
-    
+    """
+    )
+
     print("\n⚙️  KEY CONFIGURATION PARAMETERS:")
-    print("""
+    print(
+        """
     # Executor Memory
     --executor-memory 4g
     
@@ -107,10 +357,12 @@ def demonstrate_memory_tuning():
     
     # Driver Memory
     --driver-memory 2g
-    """)
-    
+    """
+    )
+
     print("\n🎯 TUNING GUIDELINES:")
-    print("""
+    print(
+        """
     1. Executor Memory:
        • Too small → frequent spills to disk
        • Too large → GC overhead
@@ -124,10 +376,12 @@ def demonstrate_memory_tuning():
     3. Memory Fraction:
        • Default (0.6) works for most cases
        • Increase if lots of UDFs or Python objects
-    """)
-    
+    """
+    )
+
     print("\n💡 COMMON MEMORY ISSUES:")
-    print("""
+    print(
+        """
     ❌ OutOfMemoryError:
        → Increase executor memory
        → Reduce cache usage
@@ -142,7 +396,8 @@ def demonstrate_memory_tuning():
        → Increase execution memory
        → Increase shuffle partitions
        → Enable compression
-    """)
+    """
+    )
 
 
 def demonstrate_parallelism_tuning(spark):
@@ -152,16 +407,17 @@ def demonstrate_parallelism_tuning(spark):
     print("\n" + "=" * 80)
     print("PARALLELISM AND PARTITION TUNING")
     print("=" * 80)
-    
+
     # Create sample data
     df = spark.range(0, 1000000)
-    
+
     print("\n📊 PARTITION METRICS:")
     print(f"   Default parallelism: {spark.sparkContext.defaultParallelism}")
     print(f"   Initial partitions: {df.rdd.getNumPartitions()}")
-    
+
     print("\n⚙️  KEY PARAMETERS:")
-    print("""
+    print(
+        """
     1. spark.default.parallelism
        • For RDD operations
        • Default: number of cores in cluster
@@ -174,11 +430,12 @@ def demonstrate_parallelism_tuning(spark):
          - Small data (<1GB): 8-16
          - Medium data (1-10GB): 50-100
          - Large data (>10GB): 200-500
-    """)
-    
+    """
+    )
+
     # Demonstrate partition tuning
     print("\n🧪 PARTITION TUNING EXAMPLE:")
-    
+
     # Too many partitions (overhead)
     spark.conf.set("spark.sql.shuffle.partitions", "200")
     start = time.time()
@@ -187,7 +444,7 @@ def demonstrate_parallelism_tuning(spark):
     time_200 = time.time() - start
     print(f"   With 200 partitions: {time_200:.3f}s")
     print(f"   Partitions after shuffle: {result1.rdd.getNumPartitions()}")
-    
+
     # Optimized partitions
     spark.conf.set("spark.sql.shuffle.partitions", "8")
     start = time.time()
@@ -197,9 +454,10 @@ def demonstrate_parallelism_tuning(spark):
     print(f"   With 8 partitions: {time_8:.3f}s")
     print(f"   Partitions after shuffle: {result2.rdd.getNumPartitions()}")
     print(f"   Speedup: {time_200/time_8:.2f}x")
-    
+
     print("\n🎯 PARTITION SIZE GUIDELINES:")
-    print("""
+    print(
+        """
     Ideal partition size: 100-200MB
     
     Too many partitions:
@@ -214,7 +472,8 @@ def demonstrate_parallelism_tuning(spark):
     Calculate optimal partitions:
     partitions = data_size_MB / target_partition_size_MB
     partitions = 10GB / 128MB = ~80 partitions
-    """)
+    """
+    )
 
 
 def demonstrate_shuffle_optimization(spark):
@@ -224,11 +483,12 @@ def demonstrate_shuffle_optimization(spark):
     print("\n" + "=" * 80)
     print("SHUFFLE OPTIMIZATION")
     print("=" * 80)
-    
+
     df = spark.range(0, 100000)
-    
+
     print("\n⚙️  SHUFFLE CONFIGURATION:")
-    print("""
+    print(
+        """
     # Shuffle partitions (most important!)
     --conf spark.sql.shuffle.partitions=100
     
@@ -247,10 +507,12 @@ def demonstrate_shuffle_optimization(spark):
     
     # Reducer memory fraction for sorting (default: 0.2)
     --conf spark.shuffle.memoryFraction=0.2
-    """)
-    
+    """
+    )
+
     print("\n🎯 SHUFFLE OPTIMIZATION TECHNIQUES:")
-    print("""
+    print(
+        """
     1. Filter Before Shuffle:
        ❌ df.groupBy("key").count().filter(col("count") > 10)
        ✅ df.filter(col("value") > 100).groupBy("key").count()
@@ -266,25 +528,24 @@ def demonstrate_shuffle_optimization(spark):
     
     5. Enable Sort-Based Shuffle:
        --conf spark.shuffle.sort.bypassMergeThreshold=200
-    """)
-    
+    """
+    )
+
     # Demonstrate filter before shuffle
     print("\n🧪 EXAMPLE: Filter Before Shuffle")
-    
+
     # Bad: filter after shuffle
     print("   ❌ Filter AFTER shuffle:")
     start = time.time()
-    bad = df.groupBy((col("id") % 100).alias("key")).count() \
-        .filter(col("count") > 900)
+    bad = df.groupBy((col("id") % 100).alias("key")).count().filter(col("count") > 900)
     bad.show(5)
     time_bad = time.time() - start
     print(f"      Time: {time_bad:.3f}s")
-    
+
     # Good: filter before shuffle
     print("   ✅ Filter BEFORE shuffle:")
     start = time.time()
-    good = df.filter(col("id") > 10000) \
-        .groupBy((col("id") % 100).alias("key")).count()
+    good = df.filter(col("id") > 10000).groupBy((col("id") % 100).alias("key")).count()
     good.show(5)
     time_good = time.time() - start
     print(f"      Time: {time_good:.3f}s")
@@ -297,12 +558,12 @@ def demonstrate_caching_strategies(spark):
     print("\n" + "=" * 80)
     print("CACHING STRATEGIES")
     print("=" * 80)
-    
-    df = spark.range(0, 1000000) \
-        .withColumn("value", col("id") * 2)
-    
+
+    df = spark.range(0, 1000000).withColumn("value", col("id") * 2)
+
     print("\n📊 STORAGE LEVELS:")
-    print("""
+    print(
+        """
     ┌──────────────────────────┬──────────┬──────────┬─────────────┐
     │ Storage Level            │ Memory   │ Disk     │ Serialized  │
     ├──────────────────────────┼──────────┼──────────┼─────────────┤
@@ -317,10 +578,12 @@ def demonstrate_caching_strategies(spark):
     
     2x = Replicated (fault tolerance)
     SER = Serialized (less memory, more CPU)
-    """)
-    
+    """
+    )
+
     print("\n🎯 WHEN TO CACHE:")
-    print("""
+    print(
+        """
     ✅ DataFrame used multiple times
     ✅ Expensive transformations (joins, aggregations)
     ✅ Iterative algorithms (ML training)
@@ -330,10 +593,11 @@ def demonstrate_caching_strategies(spark):
     ❌ Before filtering (cache after filter!)
     ❌ Very large datasets (OOM risk)
     ❌ Frequent updates
-    """)
-    
+    """
+    )
+
     print("\n🧪 CACHING DEMO:")
-    
+
     # Without cache
     print("   Without cache (multiple actions):")
     start = time.time()
@@ -342,7 +606,7 @@ def demonstrate_caching_strategies(spark):
     df.groupBy((col("id") % 10).alias("key")).count().show(5, False)
     time_no_cache = time.time() - start
     print(f"      Total time: {time_no_cache:.3f}s")
-    
+
     # With cache
     print("   With cache:")
     cached_df = df.cache()
@@ -353,12 +617,13 @@ def demonstrate_caching_strategies(spark):
     time_cache = time.time() - start
     print(f"      Total time: {time_cache:.3f}s")
     print(f"      Speedup: {time_no_cache/time_cache:.2f}x")
-    
+
     # Cleanup
     cached_df.unpersist()
-    
+
     print("\n💡 CACHE MANAGEMENT:")
-    print("""
+    print(
+        """
     # Cache DataFrame
     df.cache()  # or df.persist()
     
@@ -373,7 +638,8 @@ def demonstrate_caching_strategies(spark):
     
     # Clear all cache
     spark.catalog.clearCache()
-    """)
+    """
+    )
 
 
 def demonstrate_aqe(spark):
@@ -383,9 +649,10 @@ def demonstrate_aqe(spark):
     print("\n" + "=" * 80)
     print("ADAPTIVE QUERY EXECUTION (AQE)")
     print("=" * 80)
-    
+
     print("\n⚙️  AQE CONFIGURATION:")
-    print("""
+    print(
+        """
     # Enable AQE (Spark 3.0+)
     --conf spark.sql.adaptive.enabled=true
     
@@ -401,10 +668,12 @@ def demonstrate_aqe(spark):
     --conf spark.sql.adaptive.skewJoin.enabled=true
     --conf spark.sql.adaptive.skewJoin.skewedPartitionFactor=5
     --conf spark.sql.adaptive.skewJoin.skewedPartitionThresholdInBytes=256MB
-    """)
-    
+    """
+    )
+
     print("\n🎯 AQE FEATURES:")
-    print("""
+    print(
+        """
     1. Dynamic Partition Coalescing:
        • Reduces shuffle partitions at runtime
        • Combines small partitions after shuffle
@@ -419,19 +688,20 @@ def demonstrate_aqe(spark):
        • Detects skewed partitions
        • Splits large partitions into smaller chunks
        • Improves parallelism for skewed data
-    """)
-    
+    """
+    )
+
     df = spark.range(0, 10000)
-    
+
     # Demonstrate AQE partition coalescing
     print("\n🧪 AQE DEMO: Partition Coalescing")
     spark.conf.set("spark.sql.shuffle.partitions", "200")
     spark.conf.set("spark.sql.adaptive.enabled", "true")
-    
+
     result = df.groupBy((col("id") % 10).alias("key")).count()
     result.explain()
     result.show()
-    
+
     print("   With AQE enabled:")
     print("   • Started with 200 shuffle partitions")
     print("   • AQE coalesced to ~10 partitions (based on data size)")
@@ -445,8 +715,9 @@ def demonstrate_configuration_checklist():
     print("\n" + "=" * 80)
     print("PERFORMANCE TUNING CHECKLIST")
     print("=" * 80)
-    
-    print("""
+
+    print(
+        """
     ╔══════════════════════════════════════════════════════════════════════╗
     ║                 SPARK PERFORMANCE TUNING CHECKLIST                   ║
     ╚══════════════════════════════════════════════════════════════════════╝
@@ -516,7 +787,8 @@ def demonstrate_configuration_checklist():
     □ Monitor shuffle read/write sizes
     □ Watch for spill to disk
     □ Track GC time (should be <10% of task time)
-    """)
+    """
+    )
 
 
 def main():
@@ -526,20 +798,20 @@ def main():
     print("\n" + "🎯" * 40)
     print("SPARK PERFORMANCE TUNING")
     print("🎯" * 40)
-    
+
     spark = create_optimized_spark()
-    
+
     demonstrate_memory_tuning()
     demonstrate_parallelism_tuning(spark)
     demonstrate_shuffle_optimization(spark)
     demonstrate_caching_strategies(spark)
     demonstrate_aqe(spark)
     demonstrate_configuration_checklist()
-    
+
     print("\n" + "=" * 80)
     print("✅ PERFORMANCE TUNING COMPLETE")
     print("=" * 80)
-    
+
     print("\n📚 Key Takeaways:")
     print("   1. Tune shuffle partitions based on data size")
     print("   2. Filter before shuffle operations")
@@ -548,7 +820,7 @@ def main():
     print("   5. Use Parquet with partitioning")
     print("   6. Monitor Spark UI continuously")
     print("   7. Target 100-200MB partition size")
-    
+
     spark.stop()
 
 

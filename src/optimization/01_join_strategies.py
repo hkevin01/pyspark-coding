@@ -1,14 +1,187 @@
 """
-01_join_strategies.py
-=====================
+================================================================================
+01_join_strategies.py - Spark Join Optimization Strategies
+================================================================================
 
-Spark Join Optimization Strategies
+PURPOSE:
+--------
+Master Spark's join optimization strategies to dramatically improve performance
+and reduce costs in production data pipelines.
 
-Demonstrates:
-- 5 join strategies in Spark
-- When to use each strategy
-- Performance comparisons
-- Optimization techniques
+WHAT THIS DOES:
+---------------
+Demonstrates all 5 join strategies in Spark:
+- Broadcast Hash Join (fastest for small tables)
+- Shuffle Hash Join (good for equi-joins)
+- Sort Merge Join (default, most versatile)
+- Cartesian Join (avoid unless necessary)
+- Broadcast Nested Loop Join (for non-equi joins)
+
+Shows when to use each strategy and how to force specific implementations.
+
+WHY JOIN OPTIMIZATION MATTERS:
+------------------------------
+- Joins are the MOST EXPENSIVE operations in Spark
+- Wrong strategy can be 10-100x slower
+- Shuffles move data across network (costly)
+- Choosing right join can save $1000s on cloud bills
+
+REAL-WORLD IMPACT:
+- E-commerce: 100M sales JOIN 10K products
+  Bad join: 45 minutes, Wrong join: 5 hours
+  Optimized broadcast join: 2 minutes (90% faster!)
+
+- Finance: Daily trades JOIN reference data
+  Sort-merge: 20 minutes, Broadcast: 30 seconds (40x faster!)
+
+HOW IT WORKS:
+-------------
+1. Spark analyzes table sizes and join conditions
+2. Catalyst optimizer selects join strategy
+3. Can override with broadcast() hint
+4. Adaptive Query Execution (AQE) can change strategy at runtime
+5. Monitor with explain() and Spark UI
+
+DECISION TREE:
+--------------
+                     START
+                       |
+           Is one table < 10MB?
+                  /        \\
+               YES          NO
+                |            |
+         BROADCAST       Is it equi-join?
+         HASH JOIN          /        \\
+                         YES          NO
+                          |            |
+                    Are tables    BROADCAST
+                    sorted?       NESTED LOOP
+                      /   \\
+                   YES     NO
+                    |       |
+              SORT-MERGE  SHUFFLE
+                 JOIN    HASH JOIN
+
+KEY CONCEPTS:
+-------------
+
+1. BROADCAST HASH JOIN:
+   - WHAT: Small table copied to all executors
+   - WHY: No shuffle needed (fastest)
+   - WHEN: One table < 10MB (configurable)
+   - HOW: broadcast(small_df).join(large_df)
+   - COST: Memory on each executor = table size
+
+2. SHUFFLE HASH JOIN:
+   - WHAT: Both tables shuffled by join key
+   - WHY: Creates hash table in memory
+   - WHEN: Equi-join, tables fit in memory
+   - COST: Network shuffle + memory
+
+3. SORT MERGE JOIN:
+   - WHAT: Sort both tables, then merge
+   - WHY: Most versatile, spills to disk
+   - WHEN: Default for large equi-joins
+   - COST: Sort cost + network shuffle
+
+4. CARTESIAN JOIN:
+   - WHAT: Every row paired with every row
+   - WHY: No join condition (cross join)
+   - WHEN: Rarely needed (avoid!)
+   - COST: M × N rows (explodes!)
+
+5. BROADCAST NESTED LOOP:
+   - WHAT: Nested loops with broadcast
+   - WHY: For non-equi joins (>, <, !=)
+   - WHEN: No equality condition
+   - COST: O(M × N) comparisons
+
+PERFORMANCE COMPARISON:
+-----------------------
+Scenario: 1M sales JOIN 1K products
+
+Broadcast Hash Join:
+- Time: 2 minutes
+- Shuffle: 0 MB
+- Memory: 10 MB per executor
+- Best for: Small dimension tables
+
+Sort Merge Join:
+- Time: 15 minutes
+- Shuffle: 500 MB
+- Memory: 200 MB per executor
+- Best for: Large-large equi-joins
+
+Shuffle Hash Join:
+- Time: 10 minutes
+- Shuffle: 500 MB
+- Memory: 300 MB per executor (hash table)
+- Best for: Medium equi-joins, memory available
+
+OPTIMIZATION TECHNIQUES:
+------------------------
+1. BROADCAST SMALL TABLES:
+   df.join(broadcast(small_df), "key")
+   → Forces broadcast even if > 10MB threshold
+
+2. INCREASE BROADCAST THRESHOLD:
+   spark.conf.set("spark.sql.autoBroadcastJoinThreshold", 20971520)  # 20MB
+   → Auto-broadcast up to 20MB tables
+
+3. FILTER BEFORE JOIN:
+   df.filter("col > 100").join(other_df, "key")
+   → Reduce data size before expensive join
+
+4. REPARTITION ON JOIN KEY:
+   df.repartition("key").join(other_df.repartition("key"), "key")
+   → Pre-partition to reduce shuffle
+
+5. USE ADAPTIVE QUERY EXECUTION:
+   spark.conf.set("spark.sql.adaptive.enabled", "true")
+   → Spark adjusts strategy based on runtime statistics
+
+WHEN TO USE EACH STRATEGY:
+---------------------------
+BROADCAST HASH JOIN:
+✅ Dimension tables (< 10MB)
+✅ Lookup tables
+✅ Reference data
+❌ Both tables large
+
+SORT MERGE JOIN:
+✅ Default for large-large joins
+✅ Tables already sorted
+✅ Spill to disk if needed
+❌ Small tables (overkill)
+
+SHUFFLE HASH JOIN:
+✅ Medium-sized equi-joins
+✅ Enough memory for hash table
+✅ Better than sort-merge if no sort
+❌ Memory constraints
+
+COMMON MISTAKES:
+----------------
+❌ Not broadcasting small tables (most common!)
+❌ Joining on non-partitioned keys (full shuffle)
+❌ Cartesian joins by accident (missing condition)
+❌ Not filtering before joining
+❌ Wrong join type (inner vs left vs right)
+
+DEBUGGING JOINS:
+----------------
+1. Check explain plan:
+   df.join(other_df, "key").explain()
+   → Shows chosen strategy
+
+2. Monitor Spark UI:
+   → Stages tab shows shuffle read/write
+   → SQL tab shows physical plan
+
+3. Count rows at each step:
+   → Verify join doesn't explode data
+
+================================================================================
 """
 
 import time
