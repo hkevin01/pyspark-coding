@@ -307,12 +307,13 @@ WHEN TO USE:
 
 ================================================================================
 """
+
 from pyspark.sql import DataFrame
 
 
 class DataWriter:
     """Class for writing data to various destinations."""
-    
+
     @staticmethod
     def write_csv(
         df: DataFrame,
@@ -323,7 +324,7 @@ class DataWriter:
     ) -> None:
         """
         Write DataFrame to CSV file(s).
-        
+
         Args:
             df: DataFrame to write
             path: Output path
@@ -331,37 +332,23 @@ class DataWriter:
             header: Whether to write headers
             **options: Additional write options
         """
-        (
-            df.write
-            .mode(mode)
-            .option("header", header)
-            .options(**options)
-            .csv(path)
-        )
-    
+        (df.write.mode(mode).option("header", header).options(**options).csv(path))
+
     @staticmethod
     def write_json(
-        df: DataFrame,
-        path: str,
-        mode: str = "overwrite",
-        **options
+        df: DataFrame, path: str, mode: str = "overwrite", **options
     ) -> None:
         """
         Write DataFrame to JSON file(s).
-        
+
         Args:
             df: DataFrame to write
             path: Output path
             mode: Write mode (overwrite, append, error, ignore)
             **options: Additional write options
         """
-        (
-            df.write
-            .mode(mode)
-            .options(**options)
-            .json(path)
-        )
-    
+        (df.write.mode(mode).options(**options).json(path))
+
     @staticmethod
     def write_parquet(
         df: DataFrame,
@@ -372,7 +359,7 @@ class DataWriter:
     ) -> None:
         """
         Write DataFrame to Parquet file(s).
-        
+
         Args:
             df: DataFrame to write
             path: Output path
@@ -381,12 +368,12 @@ class DataWriter:
             **options: Additional write options
         """
         writer = df.write.mode(mode).options(**options)
-        
+
         if partition_by:
             writer = writer.partitionBy(*partition_by)
-        
+
         writer.parquet(path)
-    
+
     @staticmethod
     def write_jdbc(
         df: DataFrame,
@@ -398,7 +385,7 @@ class DataWriter:
     ) -> None:
         """
         Write DataFrame to JDBC destination.
-        
+
         Args:
             df: DataFrame to write
             url: JDBC connection URL
@@ -408,13 +395,8 @@ class DataWriter:
             **options: Additional write options
         """
         props = properties or {}
-        (
-            df.write
-            .mode(mode)
-            .jdbc(url, table, properties=props)
-            .options(**options)
-        )
-    
+        (df.write.mode(mode).jdbc(url, table, properties=props).options(**options))
+
     @staticmethod
     def write_delta(
         df: DataFrame,
@@ -425,7 +407,7 @@ class DataWriter:
     ) -> None:
         """
         Write DataFrame to Delta table.
-        
+
         Args:
             df: DataFrame to write
             path: Output path
@@ -434,8 +416,8 @@ class DataWriter:
             **options: Additional write options
         """
         writer = df.write.format("delta").mode(mode).options(**options)
-        
+
         if partition_by:
             writer = writer.partitionBy(*partition_by)
-        
+
         writer.save(path)
