@@ -1,0 +1,399 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
+
+<!--
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                                                                              ║
+║                    HADOOP CORE CONFIGURATION FILE                            ║
+║                    core-site.xml                                             ║
+║                                                                              ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+📋 PURPOSE:
+   Core Hadoop configuration for file systems and I/O settings
+   Used by PySpark to access HDFS and other file systems
+
+🎯 WHAT THIS CONFIGURES:
+   • Default file system (HDFS, local, S3, etc.)
+   • I/O buffer sizes and compression
+   • Security settings
+   • Trash and temp directory locations
+
+💻 USAGE WITH PYSPARK:
+   spark = SparkSession.builder \
+       .config("spark.hadoop.fs.defaultFS", "hdfs://localhost:9000") \
+       .getOrCreate()
+   
+   df = spark.read.parquet("hdfs://localhost:9000/data/input.parquet")
+
+�� READING GUIDE:
+   Each section clearly marked with visual separators
+   Settings grouped by functionality
+   Includes local, HDFS, and cloud storage options
+
+════════════════════════════════════════════════════════════════════════════════
+-->
+
+<configuration>
+
+<!-- 
+╔══════════════════════════════════════════════════════════════════════════════╗
+║  SECTION 1: FILE SYSTEM CONFIGURATION                                        ║
+║  Set default file system for Hadoop and Spark                                ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+-->
+
+    <!-- Default File System -->
+    <property>
+        <name>fs.defaultFS</name>
+        <value>file:///</value>
+        <description>
+            🗄️  Default file system URI
+            
+            Current: file:/// (local file system for development)
+            
+            Options:
+            • file:///          - Local file system
+            • hdfs://localhost:9000  - HDFS on localhost
+            • hdfs://namenode:9000   - HDFS cluster
+            • s3a://bucket-name      - Amazon S3
+            • wasbs://container@account.blob.core.windows.net  - Azure Blob
+            • gs://bucket-name       - Google Cloud Storage
+        </description>
+    </property>
+
+
+<!-- 
+╔══════════════════════════════════════════════════════════════════════════════╗
+║  SECTION 2: I/O SETTINGS                                                     ║
+║  Configure buffer sizes and I/O performance                                  ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+-->
+
+    <!-- I/O File Buffer Size -->
+    <property>
+        <name>io.file.buffer.size</name>
+        <value>131072</value>
+        <description>
+            📊 Buffer size for read/write operations
+            
+            Current: 131072 bytes (128 KB)
+            
+            Recommendations:
+            • Development: 65536 (64 KB)
+            • Production: 131072 - 262144 (128-256 KB)
+            • Large files: 524288 (512 KB)
+        </description>
+    </property>
+
+    <!-- Bytes Per Checksum -->
+    <property>
+        <name>io.bytes.per.checksum</name>
+        <value>512</value>
+        <description>
+            ✓ Checksum interval for data integrity
+            
+            Current: 512 bytes
+            Default: 512 bytes (recommended)
+        </description>
+    </property>
+
+
+<!-- 
+╔══════════════════════════════════════════════════════════════════════════════╗
+║  SECTION 3: COMPRESSION                                                      ║
+║  Configure compression codecs for data storage                               ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+-->
+
+    <!-- Compression Codecs -->
+    <property>
+        <name>io.compression.codecs</name>
+        <value>org.apache.hadoop.io.compress.DefaultCodec,
+               org.apache.hadoop.io.compress.GzipCodec,
+               org.apache.hadoop.io.compress.BZip2Codec,
+               org.apache.hadoop.io.compress.SnappyCodec,
+               org.apache.hadoop.io.compress.Lz4Codec</value>
+        <description>
+            📦 Available compression codecs
+            
+            Codecs enabled:
+            • DefaultCodec - Deflate compression
+            • GzipCodec    - Gzip (good compression, slower)
+            • BZip2Codec   - BZip2 (best compression, slowest)
+            • SnappyCodec  - Snappy (fast, moderate compression) ⭐ Recommended
+            • Lz4Codec     - LZ4 (very fast, moderate compression)
+        </description>
+    </property>
+
+
+<!-- 
+╔══════════════════════════════════════════════════════════════════════════════╗
+║  SECTION 4: TEMP DIRECTORIES                                                 ║
+║  Configure temporary and working directories                                 ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+-->
+
+    <!-- Hadoop Temp Directory -->
+    <property>
+        <name>hadoop.tmp.dir</name>
+        <value>/tmp/hadoop-${user.name}</value>
+        <description>
+            📁 Temporary directory for Hadoop operations
+            
+            Current: /tmp/hadoop-${user.name}
+            Production: /data/hadoop/tmp or SSD mount point
+            
+            Note: Used for checkpoints, intermediate data, etc.
+        </description>
+    </property>
+
+
+<!-- 
+╔══════════════════════════════════════════════════════════════════════════════╗
+║  SECTION 5: TRASH CONFIGURATION                                              ║
+║  Configure file deletion and trash behavior                                  ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+-->
+
+    <!-- Trash Interval -->
+    <property>
+        <name>fs.trash.interval</name>
+        <value>1440</value>
+        <description>
+            🗑️  Trash retention interval in minutes
+            
+            Current: 1440 minutes (24 hours)
+            
+            Settings:
+            • 0     - Trash disabled (immediate deletion)
+            • 1440  - 1 day retention
+            • 10080 - 1 week retention
+            
+            Deleted files move to .Trash and are purged after this interval
+        </description>
+    </property>
+
+    <!-- Trash Checkpoint Interval -->
+    <property>
+        <name>fs.trash.checkpoint.interval</name>
+        <value>60</value>
+        <description>
+            🔄 Trash checkpoint interval in minutes
+            
+            Current: 60 minutes (1 hour)
+            Must be less than or equal to fs.trash.interval
+        </description>
+    </property>
+
+
+<!-- 
+╔══════════════════════════════════════════════════════════════════════════════╗
+║  SECTION 6: SECURITY SETTINGS                                                ║
+║  Configure authentication and authorization (development mode)                ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+-->
+
+    <!-- Security Authentication -->
+    <property>
+        <name>hadoop.security.authentication</name>
+        <value>simple</value>
+        <description>
+            🔐 Authentication mechanism
+            
+            Current: simple (no Kerberos for development)
+            
+            Options:
+            • simple   - No authentication (development)
+            • kerberos - Kerberos authentication (production)
+        </description>
+    </property>
+
+    <!-- Security Authorization -->
+    <property>
+        <name>hadoop.security.authorization</name>
+        <value>false</value>
+        <description>
+            🔒 Enable/disable service level authorization
+            
+            Current: false (disabled for development)
+            Production: true (enable authorization)
+        </description>
+    </property>
+
+
+<!-- 
+╔══════════════════════════════════════════════════════════════════════════════╗
+║  SECTION 7: PROXY USERS (FOR IMPERSONATION)                                  ║
+║  Allow certain users to act on behalf of others                              ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+-->
+
+    <!-- Proxy User Groups -->
+    <property>
+        <name>hadoop.proxyuser.${user.name}.groups</name>
+        <value>*</value>
+        <description>
+            👥 Groups that proxy user can impersonate
+            
+            Current: * (all groups - development only)
+            Production: Specify specific groups
+        </description>
+    </property>
+
+    <!-- Proxy User Hosts -->
+    <property>
+        <name>hadoop.proxyuser.${user.name}.hosts</name>
+        <value>*</value>
+        <description>
+            🖥️  Hosts from which proxy user can connect
+            
+            Current: * (all hosts - development only)
+            Production: Specify specific hosts
+        </description>
+    </property>
+
+
+<!-- 
+╔══════════════════════════════════════════════════════════════════════════════╗
+║  SECTION 8: S3A CONFIGURATION (AMAZON S3)                                    ║
+║  Settings for accessing Amazon S3 with s3a:// protocol                       ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+-->
+
+    <!-- S3A Access Key (use environment variable in production) -->
+    <!--
+    <property>
+        <name>fs.s3a.access.key</name>
+        <value>YOUR_ACCESS_KEY</value>
+        <description>AWS Access Key ID for S3 access</description>
+    </property>
+    -->
+
+    <!-- S3A Secret Key (use environment variable in production) -->
+    <!--
+    <property>
+        <name>fs.s3a.secret.key</name>
+        <value>YOUR_SECRET_KEY</value>
+        <description>AWS Secret Access Key for S3 access</description>
+    </property>
+    -->
+
+    <!-- S3A Endpoint (optional, for specific regions) -->
+    <!--
+    <property>
+        <name>fs.s3a.endpoint</name>
+        <value>s3.us-west-2.amazonaws.com</value>
+        <description>S3 endpoint for specific AWS region</description>
+    </property>
+    -->
+
+    <!-- S3A Fast Upload -->
+    <property>
+        <name>fs.s3a.fast.upload</name>
+        <value>true</value>
+        <description>
+            ⚡ Enable fast upload buffer for S3A
+            
+            Uses disk buffer for uploads (faster than memory buffer)
+        </description>
+    </property>
+
+
+<!-- 
+╔══════════════════════════════════════════════════════════════════════════════╗
+║  SECTION 9: AZURE BLOB STORAGE (WASBS)                                       ║
+║  Settings for accessing Azure Blob Storage                                   ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+-->
+
+    <!-- Azure Storage Account Key -->
+    <!--
+    <property>
+        <name>fs.azure.account.key.YOUR_ACCOUNT.blob.core.windows.net</name>
+        <value>YOUR_STORAGE_ACCOUNT_KEY</value>
+        <description>Azure Blob Storage account key</description>
+    </property>
+    -->
+
+
+<!-- 
+╔══════════════════════════════════════════════════════════════════════════════╗
+║  SECTION 10: GOOGLE CLOUD STORAGE (GCS)                                      ║
+║  Settings for accessing Google Cloud Storage                                 ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+-->
+
+    <!-- GCS Project ID -->
+    <!--
+    <property>
+        <name>fs.gs.project.id</name>
+        <value>YOUR_PROJECT_ID</value>
+        <description>Google Cloud project ID</description>
+    </property>
+    -->
+
+    <!-- GCS Service Account -->
+    <!--
+    <property>
+        <name>google.cloud.auth.service.account.json.keyfile</name>
+        <value>/path/to/service-account-key.json</value>
+        <description>Path to GCS service account JSON key file</description>
+    </property>
+    -->
+
+
+</configuration>
+
+<!--
+════════════════════════════════════════════════════════════════════════════════
+END OF CONFIGURATION
+
+📚 QUICK REFERENCE SUMMARY:
+   Section 1:  File system (file:/// for local development)
+   Section 2:  I/O settings (128 KB buffer)
+   Section 3:  Compression (Snappy, Gzip, LZ4, BZip2)
+   Section 4:  Temp directories (/tmp/hadoop-${user.name})
+   Section 5:  Trash (24 hour retention)
+   Section 6:  Security (simple auth for development)
+   Section 7:  Proxy users (impersonation settings)
+   Section 8:  S3A (Amazon S3 configuration)
+   Section 9:  WASBS (Azure Blob Storage)
+   Section 10: GCS (Google Cloud Storage)
+
+💡 COMMON CONFIGURATIONS:
+
+   # Local Development (current):
+   fs.defaultFS = file:///
+   
+   # Local HDFS:
+   fs.defaultFS = hdfs://localhost:9000
+   
+   # HDFS Cluster:
+   fs.defaultFS = hdfs://namenode:9000
+   
+   # Amazon S3:
+   fs.defaultFS = s3a://my-bucket/
+   
+   # Azure Blob:
+   fs.defaultFS = wasbs://container@account.blob.core.windows.net
+
+🚀 USAGE IN PYSPARK:
+
+   # Method 1: Set in SparkSession
+   spark = SparkSession.builder \
+       .config("spark.hadoop.fs.defaultFS", "hdfs://localhost:9000") \
+       .config("spark.hadoop.fs.s3a.access.key", "YOUR_KEY") \
+       .getOrCreate()
+   
+   # Method 2: Read from specific filesystem
+   df = spark.read.parquet("hdfs://localhost:9000/data/file.parquet")
+   df = spark.read.parquet("s3a://my-bucket/data/file.parquet")
+   df = spark.read.parquet("wasbs://container@account.blob.core.windows.net/data/")
+
+📖 DOCUMENTATION:
+   Hadoop Core: https://hadoop.apache.org/docs/stable/hadoop-project-dist/hadoop-common/
+   Cloud Storage: https://spark.apache.org/docs/latest/cloud-integration.html
+
+════════════════════════════════════════════════════════════════════════════════
+-->

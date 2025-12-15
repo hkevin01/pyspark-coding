@@ -1,0 +1,491 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
+
+<!--
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                                                                              ║
+║                    HDFS CONFIGURATION FILE                                   ║
+║                    hdfs-site.xml                                             ║
+║                                                                              ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+📋 PURPOSE:
+   HDFS-specific configuration for Hadoop Distributed File System
+   Used by PySpark when reading/writing data to HDFS
+
+🎯 WHAT THIS CONFIGURES:
+   • Replication factor and block size
+   • NameNode and DataNode settings
+   • Storage directories
+   • Permissions and quotas
+   • WebHDFS and HttpFS access
+
+💻 USAGE WITH PYSPARK:
+   spark = SparkSession.builder \
+       .config("spark.hadoop.dfs.replication", "1") \
+       .config("spark.hadoop.dfs.blocksize", "134217728") \
+       .getOrCreate()
+   
+   df.write.parquet("hdfs://localhost:9000/output/data.parquet")
+
+📖 READING GUIDE:
+   Optimized for local development (single node)
+   Production settings commented with recommendations
+   Each property explained with examples
+
+════════════════════════════════════════════════════════════════════════════════
+-->
+
+<configuration>
+
+<!-- 
+╔══════════════════════════════════════════════════════════════════════════════╗
+║  SECTION 1: REPLICATION & BLOCK SIZE                                         ║
+║  Core HDFS data storage settings                                             ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+-->
+
+    <!-- Replication Factor -->
+    <property>
+        <name>dfs.replication</name>
+        <value>1</value>
+        <description>
+            🔄 Number of replicas for each block
+            
+            Current: 1 (single node development)
+            
+            Recommendations:
+            • Development:  1 (single node)
+            • Small cluster: 2
+            • Production:   3 (default, recommended for fault tolerance)
+            • Critical data: 4+
+            
+            Note: Determines fault tolerance and read performance
+        </description>
+    </property>
+
+    <!-- Block Size -->
+    <property>
+        <name>dfs.blocksize</name>
+        <value>134217728</value>
+        <description>
+            📦 HDFS block size in bytes
+            
+            Current: 134217728 bytes (128 MB)
+            
+            Recommendations:
+            • Small files:  67108864 (64 MB)
+            • Standard:     134217728 (128 MB) ⭐ Default
+            • Large files:  268435456 (256 MB)
+            • Very large:   536870912 (512 MB)
+            
+            Larger blocks = fewer metadata operations, better for large files
+        </description>
+    </property>
+
+
+<!-- 
+╔══════════════════════════════════════════════════════════════════════════════╗
+║  SECTION 2: NAMENODE CONFIGURATION                                           ║
+║  Settings for the HDFS NameNode (master)                                     ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+-->
+
+    <!-- NameNode Data Directory -->
+    <property>
+        <name>dfs.namenode.name.dir</name>
+        <value>file:///tmp/hadoop-${user.name}/dfs/name</value>
+        <description>
+            📁 NameNode metadata storage directory
+            
+            Current: /tmp/hadoop-${user.name}/dfs/name
+            Production: /data/hadoop/hdfs/namenode (persistent storage, RAID recommended)
+            
+            Stores:
+            • File system metadata
+            • Block locations
+            • Namespace information
+            
+            ⚠️  CRITICAL: Backup this directory regularly in production!
+        </description>
+    </property>
+
+    <!-- NameNode HTTP Address -->
+    <property>
+        <name>dfs.namenode.http-address</name>
+        <value>0.0.0.0:9870</value>
+        <description>
+            🌐 NameNode web UI address
+            
+            Current: 0.0.0.0:9870
+            Access at: http://localhost:9870
+            
+            Provides:
+            • Filesystem browser
+            • Cluster health status
+            • Block information
+            • DataNode status
+        </description>
+    </property>
+
+    <!-- NameNode Secondary HTTP Address -->
+    <property>
+        <name>dfs.namenode.secondary.http-address</name>
+        <value>0.0.0.0:9868</value>
+        <description>
+            🔄 Secondary NameNode web UI address
+            
+            Current: 0.0.0.0:9868
+            Access at: http://localhost:9868
+            
+            Purpose: Periodic checkpointing of NameNode metadata
+        </description>
+    </property>
+
+
+<!-- 
+╔══════════════════════════════════════════════════════════════════════════════╗
+║  SECTION 3: DATANODE CONFIGURATION                                           ║
+║  Settings for HDFS DataNodes (workers)                                       ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+-->
+
+    <!-- DataNode Data Directory -->
+    <property>
+        <name>dfs.datanode.data.dir</name>
+        <value>file:///tmp/hadoop-${user.name}/dfs/data</value>
+        <description>
+            💾 DataNode block storage directories
+            
+            Current: /tmp/hadoop-${user.name}/dfs/data
+            Production: /data1/hadoop/hdfs/data,/data2/hadoop/hdfs/data (multiple disks)
+            
+            Multiple directories:
+            • Separate with commas
+            • Use different physical disks
+            • HDFS will balance data across all directories
+        </description>
+    </property>
+
+    <!-- DataNode HTTP Address -->
+    <property>
+        <name>dfs.datanode.http.address</name>
+        <value>0.0.0.0:9864</value>
+        <description>
+            🌐 DataNode web UI address
+            
+            Current: 0.0.0.0:9864
+            Access at: http://localhost:9864
+        </description>
+    </property>
+
+
+<!-- 
+╔══════════════════════════════════════════════════════════════════════════════╗
+║  SECTION 4: PERMISSIONS & SECURITY                                           ║
+║  Access control and security settings                                        ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+-->
+
+    <!-- Permissions Enabled -->
+    <property>
+        <name>dfs.permissions.enabled</name>
+        <value>false</value>
+        <description>
+            🔐 Enable HDFS permissions checking
+            
+            Current: false (disabled for development)
+            Production: true (enable permissions)
+            
+            When enabled, HDFS checks Unix-style permissions (rwx)
+        </description>
+    </property>
+
+    <!-- Superuser Group -->
+    <property>
+        <name>dfs.permissions.superusergroup</name>
+        <value>supergroup</value>
+        <description>
+            👤 HDFS superuser group
+            
+            Members of this group have full HDFS access
+        </description>
+    </property>
+
+    <!-- WebHDFS Enabled -->
+    <property>
+        <name>dfs.webhdfs.enabled</name>
+        <value>true</value>
+        <description>
+            🌐 Enable WebHDFS REST API
+            
+            Allows HTTP/REST access to HDFS
+            Useful for: web apps, non-Java clients, remote access
+            
+            Access via: http://namenode:9870/webhdfs/v1/
+        </description>
+    </property>
+
+
+<!-- 
+╔══════════════════════════════════════════════════════════════════════════════╗
+║  SECTION 5: STORAGE & QUOTA SETTINGS                                         ║
+║  Configure storage policies and quotas                                       ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+-->
+
+    <!-- Reserved Space for Non-HDFS -->
+    <property>
+        <name>dfs.datanode.du.reserved</name>
+        <value>10737418240</value>
+        <description>
+            💽 Reserved disk space for non-HDFS use (bytes)
+            
+            Current: 10737418240 bytes (10 GB)
+            
+            Recommendations:
+            • Development: 10 GB
+            • Production: 50-100 GB (for OS and logs)
+            
+            Prevents HDFS from using all disk space
+        </description>
+    </property>
+
+    <!-- Storage Policy Enabled -->
+    <property>
+        <name>dfs.storage.policy.enabled</name>
+        <value>true</value>
+        <description>
+            🗄️  Enable storage policies
+            
+            Allows specifying storage types:
+            • HOT: High-performance SSD storage
+            • WARM: Standard disk storage
+            • COLD: Archive storage
+        </description>
+    </property>
+
+
+<!-- 
+╔══════════════════════════════════════════════════════════════════════════════╗
+║  SECTION 6: CLIENT CONFIGURATION                                             ║
+║  Settings for HDFS clients (including PySpark)                               ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+-->
+
+    <!-- Client Read Shortcircuit -->
+    <property>
+        <name>dfs.client.read.shortcircuit</name>
+        <value>false</value>
+        <description>
+            ⚡ Enable short-circuit local reads
+            
+            Current: false (disabled for development)
+            Production: true (for better performance)
+            
+            Allows clients on same node as DataNode to read directly from disk
+            Bypasses DataNode network stack = faster reads
+        </description>
+    </property>
+
+    <!-- Client Block Write Retries -->
+    <property>
+        <name>dfs.client.block.write.retries</name>
+        <value>3</value>
+        <description>
+            🔄 Number of retries for failed block writes
+            
+            Current: 3 attempts
+        </description>
+    </property>
+
+    <!-- Client Read Timeout -->
+    <property>
+        <name>dfs.client.socket-timeout</name>
+        <value>60000</value>
+        <description>
+            ⏱️  Socket timeout for HDFS client reads (milliseconds)
+            
+            Current: 60000 ms (60 seconds)
+            
+            Increase for slow networks or large blocks
+        </description>
+    </property>
+
+
+<!-- 
+╔══════════════════════════════════════════════════════════════════════════════╗
+║  SECTION 7: BALANCER & MAINTENANCE                                           ║
+║  Settings for HDFS balancer and maintenance operations                       ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+-->
+
+    <!-- Balancer Bandwidth -->
+    <property>
+        <name>dfs.datanode.balance.bandwidthPerSec</name>
+        <value>10485760</value>
+        <description>
+            📊 Balancer bandwidth limit per DataNode (bytes/sec)
+            
+            Current: 10485760 bytes/sec (10 MB/sec)
+            
+            Recommendations:
+            • Development: 10 MB/sec
+            • Production: 50-100 MB/sec
+            
+            Controls how fast HDFS balancer moves data between nodes
+        </description>
+    </property>
+
+    <!-- Heartbeat Interval -->
+    <property>
+        <name>dfs.heartbeat.interval</name>
+        <value>3</value>
+        <description>
+            💓 DataNode heartbeat interval (seconds)
+            
+            Current: 3 seconds
+            Default: 3 seconds (recommended)
+            
+            How often DataNodes report to NameNode
+        </description>
+    </property>
+
+
+<!-- 
+╔══════════════════════════════════════════════════════════════════════════════╗
+║  SECTION 8: HIGH AVAILABILITY (HA) - DISABLED FOR DEVELOPMENT                ║
+║  HA settings (commented out for single-node setup)                           ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+-->
+
+    <!-- HA Configuration (Production Only) -->
+    <!--
+    <property>
+        <name>dfs.nameservices</name>
+        <value>mycluster</value>
+        <description>Logical name for nameservice</description>
+    </property>
+    
+    <property>
+        <name>dfs.ha.namenodes.mycluster</name>
+        <value>nn1,nn2</value>
+        <description>Unique identifiers for each NameNode</description>
+    </property>
+    
+    <property>
+        <name>dfs.namenode.rpc-address.mycluster.nn1</name>
+        <value>namenode1:8020</value>
+        <description>RPC address for first NameNode</description>
+    </property>
+    
+    <property>
+        <name>dfs.namenode.rpc-address.mycluster.nn2</name>
+        <value>namenode2:8020</value>
+        <description>RPC address for second NameNode</description>
+    </property>
+    -->
+
+
+<!-- 
+╔══════════════════════════════════════════════════════════════════════════════╗
+║  SECTION 9: COMPRESSION                                                      ║
+║  Compression settings for HDFS                                               ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+-->
+
+    <!-- Native Libraries -->
+    <property>
+        <name>io.compression.codec.lzo.class</name>
+        <value>com.hadoop.compression.lzo.LzoCodec</value>
+        <description>
+            �� LZO compression codec class
+            
+            LZO: Fast compression, splittable (good for large files)
+        </description>
+    </property>
+
+
+</configuration>
+
+<!--
+════════════════════════════════════════════════════════════════════════════════
+END OF CONFIGURATION
+
+📚 QUICK REFERENCE SUMMARY:
+   Section 1: Replication (1 for dev) & Block size (128 MB)
+   Section 2: NameNode (metadata at /tmp/hadoop-${user.name}/dfs/name)
+   Section 3: DataNode (data at /tmp/hadoop-${user.name}/dfs/data)
+   Section 4: Permissions (disabled for dev) & WebHDFS (enabled)
+   Section 5: Storage policies and reserved space (10 GB)
+   Section 6: Client settings (timeouts, retries)
+   Section 7: Balancer (10 MB/sec) & Heartbeat (3 sec)
+   Section 8: HA configuration (disabled for single node)
+   Section 9: Compression codecs
+
+💡 KEY SETTINGS FOR DIFFERENT SCENARIOS:
+
+   # Single Node Development (current):
+   dfs.replication = 1
+   dfs.blocksize = 134217728 (128 MB)
+   
+   # Small Cluster (3-5 nodes):
+   dfs.replication = 2
+   dfs.blocksize = 134217728 (128 MB)
+   
+   # Production Cluster (10+ nodes):
+   dfs.replication = 3
+   dfs.blocksize = 268435456 (256 MB)
+   dfs.permissions.enabled = true
+
+🚀 USAGE IN PYSPARK:
+
+   # Configure HDFS settings in SparkSession
+   spark = SparkSession.builder \
+       .appName("HDFSApp") \
+       .config("spark.hadoop.dfs.replication", "1") \
+       .config("spark.hadoop.dfs.blocksize", "134217728") \
+       .getOrCreate()
+   
+   # Read from HDFS
+   df = spark.read.parquet("hdfs://localhost:9000/data/input.parquet")
+   
+   # Write to HDFS
+   df.write.mode("overwrite").parquet("hdfs://localhost:9000/output/result.parquet")
+   
+   # WebHDFS REST API example
+   curl -i "http://localhost:9870/webhdfs/v1/user/data?op=LISTSTATUS"
+
+📊 HDFS WEB UIs:
+
+   NameNode Web UI:    http://localhost:9870
+   Secondary NameNode: http://localhost:9868
+   DataNode Web UI:    http://localhost:9864
+
+🛠️  COMMON HDFS COMMANDS:
+
+   # List files
+   hdfs dfs -ls /
+   
+   # Create directory
+   hdfs dfs -mkdir -p /user/data
+   
+   # Copy from local to HDFS
+   hdfs dfs -put localfile.txt /user/data/
+   
+   # Copy from HDFS to local
+   hdfs dfs -get /user/data/file.txt ./
+   
+   # Check disk usage
+   hdfs dfs -du -h /user/data
+   
+   # Check HDFS health
+   hdfs dfsadmin -report
+
+📖 DOCUMENTATION:
+   HDFS Architecture: https://hadoop.apache.org/docs/stable/hadoop-project-dist/hadoop-hdfs/HdfsDesign.html
+   HDFS Commands: https://hadoop.apache.org/docs/stable/hadoop-project-dist/hadoop-common/FileSystemShell.html
+   WebHDFS API: https://hadoop.apache.org/docs/stable/hadoop-project-dist/hadoop-hdfs/WebHDFS.html
+
+════════════════════════════════════════════════════════════════════════════════
+-->
