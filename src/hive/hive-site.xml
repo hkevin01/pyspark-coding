@@ -1,0 +1,359 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
+
+<!--
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                                                                              ║
+║                    HIVE CONFIGURATION FILE (hive-site.xml)                   ║
+║                                                                              ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+📋 PURPOSE:
+   Configure Hive metastore and behavior for PySpark + Hive integration
+
+🎯 WHAT THIS CONFIGURES:
+   • Derby embedded metastore (local development)
+   • Warehouse location for Hive tables
+   • Dynamic partitioning and optimization
+   • Query execution settings
+
+💻 USAGE IN PYSPARK:
+   spark = SparkSession.builder \
+       .appName("HiveExample") \
+       .config("spark.sql.warehouse.dir", "/tmp/spark-warehouse") \
+       .enableHiveSupport() \
+       .getOrCreate()
+
+📖 READING GUIDE:
+   Each section is clearly marked with visual separators
+   Properties are grouped by function
+   Every setting includes a clear description
+
+════════════════════════════════════════════════════════════════════════════════
+-->
+
+<configuration>
+
+<!-- 
+╔══════════════════════════════════════════════════════════════════════════════╗
+║  SECTION 1: METASTORE CONNECTION SETTINGS                                    ║
+║  Configure Derby embedded database for metadata storage                      ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+-->
+
+    <!-- Connection URL -->
+    <property>
+        <name>javax.jdo.option.ConnectionURL</name>
+        <value>jdbc:derby:;databaseName=/tmp/metastore_db;create=true</value>
+        <description>
+            📍 JDBC connection URL for the Derby metastore database
+            
+            Current: Derby embedded (local development)
+            Location: /tmp/metastore_db
+            
+            Production alternatives:
+            • MySQL:      jdbc:mysql://localhost:3306/metastore
+            • PostgreSQL: jdbc:postgresql://localhost:5432/metastore
+        </description>
+    </property>
+
+    <!-- Driver Class -->
+    <property>
+        <name>javax.jdo.option.ConnectionDriverName</name>
+        <value>org.apache.derby.jdbc.EmbeddedDriver</value>
+        <description>
+            🔌 JDBC driver class for Derby embedded database
+        </description>
+    </property>
+
+    <!-- Database Credentials -->
+    <property>
+        <name>javax.jdo.option.ConnectionUserName</name>
+        <value>app</value>
+        <description>🔐 Database username (Derby default)</description>
+    </property>
+
+    <property>
+        <name>javax.jdo.option.ConnectionPassword</name>
+        <value>mine</value>
+        <description>🔐 Database password (Derby default)</description>
+    </property>
+
+    <!-- Metastore URI (Empty = Embedded) -->
+    <property>
+        <name>hive.metastore.uris</name>
+        <value></value>
+        <description>
+            🌐 Metastore service URI
+            
+            Current: Empty (embedded metastore)
+            Remote:  thrift://localhost:9083
+        </description>
+    </property>
+
+
+<!-- 
+╔══════════════════════════════════════════════════════════════════════════════╗
+║  SECTION 2: WAREHOUSE & STORAGE SETTINGS                                     ║
+║  Configure where Hive stores table data                                      ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+-->
+
+    <!-- Warehouse Directory -->
+    <property>
+        <name>hive.metastore.warehouse.dir</name>
+        <value>/tmp/spark-warehouse</value>
+        <description>
+            📂 Default location for Hive managed tables
+            
+            Path: /tmp/spark-warehouse
+            Note: Managed tables store data here automatically
+                  External tables store data at specified locations
+        </description>
+    </property>
+
+
+<!-- 
+╔══════════════════════════════════════════════════════════════════════════════╗
+║  SECTION 3: METASTORE SCHEMA SETTINGS                                        ║
+║  Control how metastore schema is created and validated                       ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+-->
+
+    <!-- Schema Verification -->
+    <property>
+        <name>hive.metastore.schema.verification</name>
+        <value>false</value>
+        <description>
+            ✓ Schema verification (disabled for development)
+            
+            Current: false (allow version mismatches)
+            Production: true (strict version checking)
+        </description>
+    </property>
+
+    <!-- Auto-Create Schema -->
+    <property>
+        <name>datanucleus.autoCreateSchema</name>
+        <value>true</value>
+        <description>
+            🔧 Auto-create metastore schema on first run
+            
+            Useful for: First-time setup, development
+            Set to false in production after initial setup
+        </description>
+    </property>
+
+    <!-- Fixed Datastore -->
+    <property>
+        <name>datanucleus.fixedDatastore</name>
+        <value>false</value>
+        <description>
+            🔓 Allow schema modifications
+            
+            false: Schema can be updated automatically
+            true:  Schema is locked (production setting)
+        </description>
+    </property>
+
+
+<!-- 
+╔══════════════════════════════════════════════════════════════════════════════╗
+║  SECTION 4: EXECUTION ENGINE                                                 ║
+║  Choose the engine that executes Hive queries                                ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+-->
+
+    <!-- Query Execution Engine -->
+    <property>
+        <name>hive.execution.engine</name>
+        <value>spark</value>
+        <description>
+            ⚡ Query execution engine
+            
+            Current: spark (fast, in-memory processing)
+            
+            Other options:
+            • mr  (MapReduce - slower, stable)
+            • tez (Optimized DAG execution)
+        </description>
+    </property>
+
+
+<!-- 
+╔══════════════════════════════════════════════════════════════════════════════╗
+║  SECTION 5: DYNAMIC PARTITIONING                                             ║
+║  Configure automatic partition creation for tables                           ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+-->
+
+    <!-- Enable Dynamic Partitioning -->
+    <property>
+        <name>hive.exec.dynamic.partition</name>
+        <value>true</value>
+        <description>
+            ✓ Enable dynamic partitioning
+            
+            Allows automatic partition creation during INSERT
+        </description>
+    </property>
+
+    <!-- Dynamic Partition Mode -->
+    <property>
+        <name>hive.exec.dynamic.partition.mode</name>
+        <value>nonstrict</value>
+        <description>
+            🔓 Dynamic partition mode
+            
+            Current: nonstrict (all partitions can be dynamic)
+            
+            Options:
+            • strict:    At least one static partition required
+            • nonstrict: All partitions can be dynamic
+        </description>
+    </property>
+
+    <!-- Max Dynamic Partitions -->
+    <property>
+        <name>hive.exec.max.dynamic.partitions</name>
+        <value>10000</value>
+        <description>
+            📊 Maximum number of dynamic partitions allowed per query
+            
+            Current: 10,000 partitions
+            Increase for large-scale data processing
+        </description>
+    </property>
+
+
+<!-- 
+╔══════════════════════════════════════════════════════════════════════════════╗
+║  SECTION 6: FILE FORMAT SETTINGS                                             ║
+║  Configure default storage formats for tables                                ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+-->
+
+    <!-- Default File Format -->
+    <property>
+        <name>hive.default.fileformat</name>
+        <value>TextFile</value>
+        <description>
+            📄 Default file format for new tables
+            
+            Current: TextFile (human-readable)
+            
+            Available formats:
+            • TextFile     - Plain text, CSV-like
+            • SequenceFile - Binary key-value pairs
+            • RCFile       - Row Columnar (older)
+            • ORC          - Optimized Row Columnar (recommended)
+            • Parquet      - Columnar format (widely compatible)
+        </description>
+    </property>
+
+    <!-- Output Compression -->
+    <property>
+        <name>hive.exec.compress.output</name>
+        <value>false</value>
+        <description>
+            📦 Compress query output
+            
+            Current: false (no compression)
+            Set to true to save storage space
+        </description>
+    </property>
+
+
+<!-- 
+╔══════════════════════════════════════════════════════════════════════════════╗
+║  SECTION 7: STATISTICS & OPTIMIZATION                                        ║
+║  Enable automatic statistics collection for better query planning            ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+-->
+
+    <!-- Auto-Gather Statistics -->
+    <property>
+        <name>hive.stats.autogather</name>
+        <value>true</value>
+        <description>
+            📈 Automatically gather table statistics
+            
+            Helps query optimizer make better decisions
+            Collects row counts, data sizes, etc.
+        </description>
+    </property>
+
+    <!-- Cost-Based Optimizer -->
+    <property>
+        <name>hive.cbo.enable</name>
+        <value>true</value>
+        <description>
+            🧠 Enable Cost-Based Optimizer (CBO)
+            
+            Uses statistics to choose optimal query plans
+            Improves join order, predicate pushdown, etc.
+        </description>
+    </property>
+
+    <!-- Vectorized Execution -->
+    <property>
+        <name>hive.vectorized.execution.enabled</name>
+        <value>true</value>
+        <description>
+            ⚡ Enable vectorized query execution
+            
+            Processes data in batches (not row-by-row)
+            Significantly improves performance for:
+            • Aggregations
+            • Filters
+            • Joins
+        </description>
+    </property>
+
+
+<!-- 
+╔══════════════════════════════════════════════════════════════════════════════╗
+║  SECTION 8: SECURITY SETTINGS                                                ║
+║  Configure authentication and authorization (development mode)                ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+-->
+
+    <!-- User Impersonation -->
+    <property>
+        <name>hive.server2.enable.doAs</name>
+        <value>false</value>
+        <description>
+            👤 User impersonation (disabled for development)
+            
+            Current: false (run as service user)
+            Production: true (run as authenticated user)
+        </description>
+    </property>
+
+
+<!--
+════════════════════════════════════════════════════════════════════════════════
+END OF CONFIGURATION
+
+📚 QUICK REFERENCE:
+   Section 1: Database connection (Derby)
+   Section 2: Warehouse location (/tmp/spark-warehouse)
+   Section 3: Schema management (auto-create enabled)
+   Section 4: Execution engine (Spark)
+   Section 5: Dynamic partitioning (enabled, nonstrict)
+   Section 6: File formats (TextFile default)
+   Section 7: Statistics & optimization (all enabled)
+   Section 8: Security (development mode)
+
+💡 NEXT STEPS:
+   1. Adjust warehouse.dir if needed
+   2. For production: Switch to MySQL/PostgreSQL metastore
+   3. Consider changing default format to ORC or Parquet
+   4. Enable output compression for large datasets
+
+📖 DOCUMENTATION:
+   See README.md in this folder for usage examples
+════════════════════════════════════════════════════════════════════════════════
+-->
+
+</configuration>
