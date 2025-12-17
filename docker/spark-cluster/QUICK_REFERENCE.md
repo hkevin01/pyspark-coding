@@ -37,6 +37,9 @@ docker exec spark-master /opt/spark/bin/spark-submit \
 
 ### Monitoring
 ```bash
+# 🔴 LIVE MONITOR (auto-refreshes every 2s)
+./apps/monitor_job.sh
+
 # View master logs
 docker logs spark-master
 
@@ -50,6 +53,10 @@ docker logs spark-worker-3
 
 # Check resource usage
 docker stats
+
+# Query Spark REST API
+curl -s http://localhost:9080/json/ | jq
+curl -s http://localhost:4040/api/v1/applications | jq
 ```
 
 ### Interactive Shell
@@ -74,6 +81,19 @@ docker exec -it spark-worker-1 bash
 | **Worker 2** | http://localhost:8082 | Worker 2 executors |
 | **Worker 3** | http://localhost:8083 | Worker 3 executors |
 | **Application** | http://localhost:4040 | Active job details (during run) |
+
+### 🔄 Enable Auto-Refresh in UI
+```bash
+# Method 1: Click "Enable auto refresh" link in UI (top right)
+
+# Method 2: Add URL parameter for auto-refresh
+http://localhost:4040/?showConsoleProgress=true
+
+# Method 3: Use our terminal monitor (2s refresh)
+./apps/monitor_job.sh
+```
+
+**📖 See ENABLE_AUTO_REFRESH.md for 5 different methods!**
 
 ## 📂 File Locations
 
