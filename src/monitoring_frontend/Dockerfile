@@ -21,6 +21,10 @@ WORKDIR /app
 
 ENV NODE_ENV production
 
+# Install Docker CLI for job submission
+# This allows the dashboard to execute spark-submit via docker exec
+RUN apk add --no-cache docker-cli
+
 # Copy built application
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./

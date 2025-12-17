@@ -2,193 +2,265 @@
 """
 Long-Running Spark Job for UI Demonstration
 ============================================
-This job processes more data with multiple stages to keep the UI active longer.
-Perfect for exploring the Spark Application UI at http://localhost:4040
+This job processes data with multiple stages to keep the UI active longer.
+Perfect for exploring the Spark Dashboard execution flow visualization.
+
+🕐 RUNTIME: ~2-3 minutes (optimized for desktop systems)
+⚙️  RESOURCE-FRIENDLY: Uses limited memory and CPU
 """
+
+import time
 
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
-import time
+from pyspark.sql.window import Window
+
+# ═══════════════════════════════════════════════════════════════════════════
+# CONFIGURATION - Adjust these for your system
+# ═══════════════════════════════════════════════════════════════════════════
+RECORDS_SMALL = 2_000_000  # 2M records (was 50M)
+RECORDS_MEDIUM = 500_000  # 500K records (was 20M)
+PARTITIONS = 12  # Fewer partitions = less overhead
+PAUSE_SECONDS = 6  # Pause between stages for observation
+
+
+def stage_pause(seconds=PAUSE_SECONDS):
+    """Pause between stages so you can observe the dashboard"""
+    print(f"   ⏳ Pausing {seconds}s for dashboard observation...")
+    time.sleep(seconds)
+
 
 def main():
     print("=" * 70)
-    print("🚀 LONG-RUNNING SPARK JOB - UI DEMO")
+    print("🚀 LONG-RUNNING SPARK JOB - DASHBOARD DEMO (Resource-Friendly)")
     print("=" * 70)
-    print("\n📊 Open Spark UI now: http://localhost:4040")
-    print("⏰ This job will run for ~60 seconds\n")
-    
-    spark = SparkSession.builder \
-        .appName("UI Demo - Long Running Job") \
+    print("\n📊 Open Dashboard: http://localhost:3000")
+    print("🔥 This job will run for ~2-3 MINUTES")
+    print("⚙️  Optimized for desktop systems (low memory footprint)")
+    print("👀 Watch the Execution Flow update in real-time!\n")
+
+    spark = (
+        SparkSession.builder.appName("Extended Demo - Watch Execution Flow")
+        .config("spark.sql.shuffle.partitions", str(PARTITIONS))
+        .config("spark.driver.memory", "512m")
+        .config("spark.executor.memory", "512m")
+        .config("spark.memory.fraction", "0.4")
         .getOrCreate()
-    
+    )
+
     sc = spark.sparkContext
-    
-    # ═══════════════════════════════════════════════════════════════
-    # STAGE 1: Create large dataset (10 million records)
-    # ═══════════════════════════════════════════════════════════════
-    print("📈 STAGE 1: Creating 10 million records...")
-    time.sleep(2)  # Give time to open UI
-    
-    df = spark.range(0, 10_000_000, 1, numPartitions=24)
-    df = df.withColumn("value", F.col("id") * 2)
-    df = df.withColumn("category", (F.col("id") % 100).cast("string"))
-    df = df.withColumn("squared", F.col("id") * F.col("id"))
-    
-    df.cache()  # Cache for reuse - visible in Storage tab
-    print(f"   ✓ Created {df.count():,} records")
-    print("   💡 Check Storage tab in UI to see cached data\n")
+
+    print("⏰ Starting in 3 seconds - get the dashboard ready!")
     time.sleep(3)
-    
-    # ═══════════════════════════════════════════════════════════════
-    # STAGE 2: Complex aggregations
-    # ═══════════════════════════════════════════════════════════════
-    print("📊 STAGE 2: Running aggregations...")
-    
-    result1 = df.groupBy("category") \
-        .agg(
-            F.count("*").alias("count"),
-            F.sum("squared").alias("sum_squared"),
-            F.avg("value").alias("avg_value"),
-            F.max("id").alias("max_id"),
-            F.min("id").alias("min_id")
-        )
-    
-    print(f"   ✓ Aggregated into {result1.count()} groups")
-    print("   💡 Check Stages tab to see task distribution\n")
-    time.sleep(3)
-    
-    # ═══════════════════════════════════════════════════════════════
-    # STAGE 3: Window functions
-    # ═══════════════════════════════════════════════════════════════
-    print("🪟 STAGE 3: Applying window functions...")
-    
-    from pyspark.sql.window import Window
-    
+
+    # ═══════════════════════════════════════════════════════════════════════════
+    # STAGE 1: Create first dataset (2 million records - manageable size)
+    # ═══════════════════════════════════════════════════════════════════════════
+    print("\n" + "─" * 70)
+    print(f"📈 STAGE 1/10: Creating {RECORDS_SMALL:,} records...")
+    print("   This generates the base RDD partitioned across workers")
+    print("─" * 70)
+
+    df1 = spark.range(0, RECORDS_SMALL, 1, numPartitions=PARTITIONS)
+    df1 = df1.withColumn("value", F.col("id") * 2)
+    df1 = df1.withColumn("category", (F.col("id") % 100).cast("string"))
+    df1 = df1.withColumn("squared", F.col("id") * F.col("id"))
+    df1 = df1.withColumn("random_val", F.rand() * 1000)
+
+    # Persist with MEMORY_AND_DISK to avoid OOM
+    df1.persist()
+    count1 = df1.count()
+    print(f"   ✅ Created {count1:,} records across {PARTITIONS} partitions")
+    stage_pause()
+
+    # ═══════════════════════════════════════════════════════════════════════════
+    # STAGE 2: Create second dataset for joins
+    # ═══════════════════════════════════════════════════════════════════════════
+    print("\n" + "─" * 70)
+    print(f"📈 STAGE 2/10: Creating second dataset ({RECORDS_MEDIUM:,} records)...")
+    print("   This will be used for join operations later")
+    print("─" * 70)
+
+    df2 = spark.range(0, RECORDS_MEDIUM, 1, numPartitions=PARTITIONS // 2)
+    df2 = df2.withColumn("key", (F.col("id") % 100).cast("string"))
+    df2 = df2.withColumn("extra_value", F.col("id") * 3)
+    df2 = df2.withColumn("flag", F.when(F.col("id") % 2 == 0, "EVEN").otherwise("ODD"))
+
+    count2 = df2.count()
+    print(f"   ✅ Created {count2:,} records for joining")
+    stage_pause()
+
+    # ═══════════════════════════════════════════════════════════════════════════
+    # STAGE 3: First aggregation (groupBy causes SHUFFLE!)
+    # ═══════════════════════════════════════════════════════════════════════════
+    print("\n" + "─" * 70)
+    print("🔀 STAGE 3/10: First aggregation - GROUP BY (triggers SHUFFLE!)")
+    print("   Watch the Shuffle section - data moves between nodes here")
+    print("─" * 70)
+
+    agg1 = df1.groupBy("category").agg(
+        F.count("*").alias("count"),
+        F.sum("squared").alias("sum_squared"),
+        F.avg("value").alias("avg_value"),
+        F.max("id").alias("max_id"),
+    )
+
+    agg_count = agg1.count()
+    print(f"   ✅ Aggregated into {agg_count} category groups")
+    print("   🔀 Shuffle complete - check Shuffle Read/Write metrics")
+    stage_pause()
+
+    # ═══════════════════════════════════════════════════════════════════════════
+    # STAGE 4: Aggregation with value buckets
+    # ═══════════════════════════════════════════════════════════════════════════
+    print("\n" + "─" * 70)
+    print("📊 STAGE 4/10: Aggregation with value ranges...")
+    print("   Creating buckets and aggregating by range")
+    print("─" * 70)
+
+    df_bucketed = df1.withColumn(
+        "value_bucket",
+        F.when(F.col("value") < 1000, "small")
+        .when(F.col("value") < 10000, "medium")
+        .otherwise("large"),
+    )
+
+    bucket_agg = df_bucketed.groupBy("value_bucket").agg(
+        F.count("*").alias("bucket_count"), F.sum("value").alias("bucket_sum")
+    )
+
+    bucket_count = bucket_agg.count()
+    print(f"   ✅ Created {bucket_count} value buckets")
+    stage_pause()
+
+    # ═══════════════════════════════════════════════════════════════════════════
+    # STAGE 5: Window function (lighter version)
+    # ═══════════════════════════════════════════════════════════════════════════
+    print("\n" + "─" * 70)
+    print("🪟 STAGE 5/10: Applying WINDOW FUNCTION...")
+    print("   Computing row numbers per category (sampled)")
+    print("─" * 70)
+
+    # Use smaller sample for window function
+    df_sample = df1.sample(0.1)  # 10% sample
     windowSpec = Window.partitionBy("category").orderBy("id")
-    
-    df_windowed = df.withColumn("row_num", F.row_number().over(windowSpec)) \
-                    .withColumn("running_sum", F.sum("value").over(windowSpec))
-    
-    sample = df_windowed.filter(F.col("row_num") <= 10).count()
-    print(f"   ✓ Applied window functions, sampled {sample:,} records")
-    print("   💡 Check SQL tab to see execution plan\n")
-    time.sleep(3)
-    
-    # ═══════════════════════════════════════════════════════════════
-    # STAGE 4: Joins
-    # ═══════════════════════════════════════════════════════════════
-    print("🔗 STAGE 4: Performing joins...")
-    
-    # Create a smaller lookup table
-    lookup = spark.range(0, 100).toDF("category_id")
-    lookup = lookup.withColumn("category", F.col("category_id").cast("string"))
-    lookup = lookup.withColumn("category_name", F.concat(F.lit("Category_"), F.col("category")))
-    
-    # Join with main dataset
-    joined = result1.join(lookup, "category", "left")
-    
-    print(f"   ✓ Joined {joined.count()} records")
-    print("   💡 Check Executors tab to see shuffle metrics\n")
-    time.sleep(3)
-    
-    # ═══════════════════════════════════════════════════════════════
-    # STAGE 5: Multiple filters and transformations
-    # ═══════════════════════════════════════════════════════════════
-    print("🔍 STAGE 5: Filtering and transformations...")
-    
-    filtered = df.filter(F.col("id") % 10 == 0) \
-                 .filter(F.col("value") > 1000) \
-                 .select("id", "value", "category", "squared")
-    
-    print(f"   ✓ Filtered to {filtered.count():,} records")
-    time.sleep(3)
-    
-    # ═══════════════════════════════════════════════════════════════
-    # STAGE 6: Sort and collect top records
-    # ═══════════════════════════════════════════════════════════════
-    print("📋 STAGE 6: Sorting and collecting results...")
-    
-    top_records = df.orderBy(F.col("squared").desc()).limit(20)
-    results = top_records.collect()
-    
-    print("\n   Top 10 records by squared value:")
-    print("   " + "-" * 50)
-    for i, row in enumerate(results[:10], 1):
-        print(f"   {i:2d}. ID: {row['id']:8,} | Squared: {row['squared']:15,}")
-    
-    time.sleep(3)
-    
-    # ═══════════════════════════════════════════════════════════════
-    # STAGE 7: Statistical operations
-    # ═══════════════════════════════════════════════════════════════
-    print("\n📐 STAGE 7: Computing statistics...")
-    
-    stats = df.select(
+
+    df_windowed = df_sample.withColumn("row_num", F.row_number().over(windowSpec))
+    window_count = df_windowed.filter(F.col("row_num") <= 10).count()
+    print(f"   ✅ Window function applied, sampled {window_count:,} records")
+    stage_pause()
+
+    # ═══════════════════════════════════════════════════════════════════════════
+    # STAGE 6: JOIN operation (controlled size)
+    # ═══════════════════════════════════════════════════════════════════════════
+    print("\n" + "─" * 70)
+    print("🔗 STAGE 6/10: JOIN OPERATION (shuffle)")
+    print(f"   Joining {RECORDS_SMALL:,} with {RECORDS_MEDIUM:,} records")
+    print("   Watch Shuffle metrics increase!")
+    print("─" * 70)
+
+    df2_renamed = df2.withColumnRenamed("key", "category")
+
+    # Limit join size for safety
+    joined = df1.join(df2_renamed, "category", "inner")
+    join_count = joined.limit(100000).count()
+    print(f"   ✅ Join complete - sampled {join_count:,} matched records")
+    stage_pause()
+
+    # ═══════════════════════════════════════════════════════════════════════════
+    # STAGE 7: Filter chain
+    # ═══════════════════════════════════════════════════════════════════════════
+    print("\n" + "─" * 70)
+    print("🔍 STAGE 7/10: Applying FILTER chain (narrow transformation)...")
+    print("   Multiple filter conditions - no shuffle needed")
+    print("─" * 70)
+
+    filtered = (
+        df1.filter(F.col("id") % 7 == 0)
+        .filter(F.col("value") > 1000)
+        .filter(F.col("random_val") > 500)
+    )
+
+    filter_count = filtered.count()
+    print(f"   ✅ Filtered to {filter_count:,} records")
+    stage_pause()
+
+    # ═══════════════════════════════════════════════════════════════════════════
+    # STAGE 8: Statistical aggregations
+    # ═══════════════════════════════════════════════════════════════════════════
+    print("\n" + "─" * 70)
+    print("📐 STAGE 8/10: Statistical aggregations...")
+    print("   Computing mean, stddev, min, max")
+    print("─" * 70)
+
+    stats = df1.select(
         F.count("*").alias("total_count"),
-        F.sum("value").alias("total_sum"),
         F.avg("value").alias("mean"),
         F.stddev("value").alias("stddev"),
         F.min("value").alias("min_value"),
-        F.max("value").alias("max_value")
+        F.max("value").alias("max_value"),
     ).collect()[0]
-    
-    print(f"\n   Statistics:")
-    print(f"   • Total records: {stats['total_count']:,}")
-    print(f"   • Sum: {stats['total_sum']:,}")
-    print(f"   • Mean: {stats['mean']:,.2f}")
-    print(f"   • Std Dev: {stats['stddev']:,.2f}")
-    print(f"   • Range: [{stats['min_value']:,} - {stats['max_value']:,}]")
-    
-    time.sleep(3)
-    
-    # ═══════════════════════════════════════════════════════════════
-    # STAGE 8: Final aggregation with multiple operations
-    # ═══════════════════════════════════════════════════════════════
-    print("\n🎯 STAGE 8: Final complex aggregation...")
-    
-    final_result = joined.groupBy("category_name") \
-        .agg(
-            F.sum("count").alias("total_records"),
-            F.avg("avg_value").alias("overall_avg"),
-            F.max("max_id").alias("highest_id")
-        ) \
-        .orderBy(F.col("total_records").desc()) \
-        .limit(10)
-    
-    print("\n   Top 10 categories by record count:")
-    print("   " + "-" * 66)
-    final_result.show(10, truncate=False)
-    
-    time.sleep(5)
-    
-    # ═══════════════════════════════════════════════════════════════
-    # Summary
-    # ═══════════════════════════════════════════════════════════════
+
+    print(f"   📊 Statistics:")
+    print(f"      • Total: {stats['total_count']:,} records")
+    print(f"      • Mean: {stats['mean']:,.2f}")
+    print(f"      • Std Dev: {stats['stddev']:,.2f}")
+    stage_pause()
+
+    # ═══════════════════════════════════════════════════════════════════════════
+    # STAGE 9: Sort operation
+    # ═══════════════════════════════════════════════════════════════════════════
+    print("\n" + "─" * 70)
+    print("📋 STAGE 9/10: SORT operation (triggers shuffle)")
+    print("   Sorting by value descending")
+    print("─" * 70)
+
+    sorted_df = df1.orderBy(F.col("value").desc())
+    top_records = sorted_df.limit(10).collect()
+
+    print("   📊 Top 5 records by value:")
+    for i, row in enumerate(top_records[:5], 1):
+        print(f"      {i}. ID: {row['id']:,} → Value: {row['value']:,}")
+    stage_pause()
+
+    # ═══════════════════════════════════════════════════════════════════════════
+    # STAGE 10: Final summary
+    # ═══════════════════════════════════════════════════════════════════════════
+    print("\n" + "─" * 70)
+    print("🎯 STAGE 10/10: Final aggregation...")
+    print("─" * 70)
+
+    final_result = agg1.orderBy(F.col("count").desc()).limit(5)
+    print("\n   🏆 Top 5 Categories:")
+    final_result.show(5, truncate=False)
+
+    # ═══════════════════════════════════════════════════════════════════════════
+    # CLEANUP
+    # ═══════════════════════════════════════════════════════════════════════════
     print("\n" + "=" * 70)
-    print("✅ JOB COMPLETED SUCCESSFULLY")
+    print("✅ JOB COMPLETED SUCCESSFULLY!")
     print("=" * 70)
-    print("\n📊 Summary:")
-    print(f"   • Processed: 10,000,000 records")
-    print(f"   • Stages: 8 major stages")
-    print(f"   • Partitions: 24")
-    print(f"   • Operations: Aggregations, Joins, Windows, Filters")
-    print("\n💡 UI Insights:")
-    print("   • Jobs Tab: See all 8+ jobs executed")
-    print("   • Stages Tab: View task timeline and distribution")
-    print("   • Storage Tab: Check cached DataFrame")
-    print("   • Executors Tab: Monitor worker performance")
-    print("   • SQL Tab: Explore query plans")
-    print("\n🌐 Master UI: http://localhost:9080")
-    print("   View completed application details\n")
-    
-    # Keep UI alive for a few more seconds
-    print("⏰ Keeping UI alive for 10 more seconds...")
-    print("   Explore the UI now!")
+    print(f"\n📊 Execution Summary:")
+    print(f"   • Records Processed: {RECORDS_SMALL + RECORDS_MEDIUM:,}")
+    print(f"   • Stages Executed: 10")
+    print(f"   • Partitions: {PARTITIONS}")
+    print("\n👀 What You Should Have Seen:")
+    print("   ✓ Driver started and built DAG")
+    print("   ✓ Stages created at shuffle boundaries")
+    print("   ✓ Tasks running on worker nodes")
+    print("   ✓ Shuffle data moving between executors")
+    print("\n⏳ Keeping session alive for 10 more seconds...")
     time.sleep(10)
-    
-    df.unpersist()
+
+    # Unpersist
+    df1.unpersist()
+
     spark.stop()
-    print("\n🛑 Spark session stopped. UI will close now.\n")
+    print("\n🛑 Spark session stopped.\n")
+
+
+if __name__ == "__main__":
+    main()
 
 if __name__ == "__main__":
     main()

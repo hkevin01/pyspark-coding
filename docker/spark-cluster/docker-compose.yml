@@ -30,8 +30,16 @@ services:
     hostname: spark-worker-1
     command: /opt/spark/bin/spark-class org.apache.spark.deploy.worker.Worker spark://spark-master:7077
     environment:
-      - SPARK_WORKER_MEMORY=2G
-      - SPARK_WORKER_CORES=2
+      - SPARK_WORKER_MEMORY=1G
+      - SPARK_WORKER_CORES=1
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1536M
+        reservations:
+          cpus: '0.5'
+          memory: 512M
     ports:
       - "8081:8081"   # Worker 1 Web UI
     volumes:
@@ -51,8 +59,16 @@ services:
     hostname: spark-worker-2
     command: /opt/spark/bin/spark-class org.apache.spark.deploy.worker.Worker spark://spark-master:7077
     environment:
-      - SPARK_WORKER_MEMORY=2G
-      - SPARK_WORKER_CORES=2
+      - SPARK_WORKER_MEMORY=1G
+      - SPARK_WORKER_CORES=1
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1536M
+        reservations:
+          cpus: '0.5'
+          memory: 512M
     ports:
       - "8082:8081"   # Worker 2 Web UI
     volumes:
@@ -72,8 +88,16 @@ services:
     hostname: spark-worker-3
     command: /opt/spark/bin/spark-class org.apache.spark.deploy.worker.Worker spark://spark-master:7077
     environment:
-      - SPARK_WORKER_MEMORY=2G
-      - SPARK_WORKER_CORES=2
+      - SPARK_WORKER_MEMORY=1G
+      - SPARK_WORKER_CORES=1
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1536M
+        reservations:
+          cpus: '0.5'
+          memory: 512M
     ports:
       - "8083:8081"   # Worker 3 Web UI
     volumes:

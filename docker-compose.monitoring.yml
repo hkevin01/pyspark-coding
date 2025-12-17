@@ -129,6 +129,10 @@ services:
       - spark-master
 
   # Monitoring Dashboard
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Next.js dashboard for real-time Spark cluster monitoring
+  # Features: Job submission, execution flow visualization, educational content
+  # ═══════════════════════════════════════════════════════════════════════════
   monitoring-dashboard:
     build:
       context: ./src/monitoring_frontend
@@ -146,6 +150,9 @@ services:
       - NEXT_PUBLIC_SPARK_MASTER_URL=http://localhost:9080
       - NEXT_PUBLIC_SPARK_APP_URL=http://localhost:4040
       - NEXT_PUBLIC_PROMETHEUS_URL=http://localhost:9090
+    volumes:
+      # Mount Docker socket to allow job submission via docker exec
+      - /var/run/docker.sock:/var/run/docker.sock
     networks:
       - spark-network
     depends_on:

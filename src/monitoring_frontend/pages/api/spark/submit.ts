@@ -7,7 +7,8 @@ const jobHistory: Array<{
   command: string
   status: 'submitted' | 'running' | 'completed' | 'failed'
   submittedAt: string
-  note?: string
+  output?: string
+  error?: string
 }> = []
 
 export default async function handler(
@@ -18,11 +19,11 @@ export default async function handler(
   if (req.method === 'GET') {
     return res.status(200).json({ 
       success: true,
-      jobs: jobHistory.slice(-50) // Return last 50 jobs
+      jobs: jobHistory.slice(-50)
     })
   }
   
-  // POST - record a job submission
+  // POST - submit and execute a Spark job
   if (req.method === 'POST') {
     try {
       const { command, name, jobId } = req.body
@@ -36,14 +37,12 @@ export default async function handler(
         return res.status(400).json({ error: 'Only spark-submit and pyspark commands are allowed' })
       }
 
-      // Record the job
       const job = {
         id: jobId || `job-${Date.now()}`,
         name: name || 'Custom Job',
         command,
         status: 'submitted' as const,
         submittedAt: new Date().toISOString(),
-        note: 'Job command recorded. To execute, run this command in the Spark master container.'
       }
       
       jobHistory.unshift(job)
@@ -53,28 +52,56 @@ export default async function handler(
         jobHistory.pop()
       }
 
-      // Try to submit via Spark REST API if available
-      // Note: This requires Spark to be configured with REST submission enabled
-      const sparkMasterUrl = process.env.SPARK_MASTER_INTERNAL_URL || 'http://spark-master:9080'
+      // ═══════════════════════════════════════════════════════════════════════
+      // EXECUTE SPARK-SUBMIT VIA DOCKER EXEC
+      // ═══════════════════════════════════════════════════════════════════════
+      // We'll use node's child_process to execute docker exec on spark-master
+      // This runs the spark-submit command asynchronously in the background
       
-      // For now, return success with instructions
+      const { exec } = require('child_process')
+      
+      // Build the docker exec command
+      // Using detach mode (-d) so it runs in background and doesn't block the API
+      const dockerCommand = `docker exec -d spark-master ${command}`
+      
+      console.log(`[Submit API] Executing: ${dockerCommand}`)
+      
+      // Execute asynchronously - don't wait for completion
+      exec(dockerCommand, { timeout: 5000 }, (error: any, stdout: string, stderr: string) => {
+        if (error) {
+          console.error(`[Submit API] Error starting job: ${error.message}`)
+          // Update job status in history
+          const jobIndex = jobHistory.findIndex(j => j.id === job.id)
+          if (jobIndex >= 0) {
+            jobHistory[jobIndex].status = 'failed'
+            jobHistory[jobIndex].error = error.message
+          }
+        } else {
+          console.log(`[Submit API] Job started successfully`)
+          // Update job status to running
+          const jobIndex = jobHistory.findIndex(j => j.id === job.id)
+          if (jobIndex >= 0) {
+            jobHistory[jobIndex].status = 'running'
+          }
+        }
+      })
+
+      // Return immediately - job runs in background
       return res.status(200).json({ 
         success: true, 
-        message: 'Job recorded successfully',
+        message: `Job "${job.name}" submitted! The spark-submit command is now running on the Spark cluster.`,
         job,
-        instructions: [
-          'To run this job, you can:',
-          '1. Access the Spark master container: docker exec -it spark-master bash',
-          `2. Run the command: ${command}`,
-          '3. Monitor the job at http://localhost:4040'
-        ],
-        sparkMasterUrl: 'http://localhost:9080',
-        sparkAppUrl: 'http://localhost:4040'
+        note: 'Job is executing in the background. Watch the Execution Flow panel for real-time updates.',
+        monitorUrls: {
+          sparkMaster: 'http://localhost:9080',
+          sparkApp: 'http://localhost:4040',
+          dashboard: 'http://localhost:3000'
+        }
       })
     } catch (error: any) {
-      console.error('Error recording job:', error)
+      console.error('Error submitting job:', error)
       return res.status(500).json({ 
-        error: error.message || 'Failed to record job' 
+        error: error.message || 'Failed to submit job' 
       })
     }
   }

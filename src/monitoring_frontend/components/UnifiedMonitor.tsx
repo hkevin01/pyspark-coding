@@ -72,6 +72,82 @@ interface SparkStage {
   shuffleReadBytes: number
   shuffleWriteBytes: number
   executorRunTime: number
+  details?: string
+}
+
+// Helper function to parse stage name and extract meaningful information
+function parseStageInfo(stage: SparkStage): { operation: string; location: string; lineNum: string; scalaClass: string } {
+  const name = stage.name || ''
+  const details = stage.details || ''
+  
+  // Pattern: "operation at file:line"
+  const match = name.match(/^(.+?)\s+at\s+(.+?):(\d+)$/)
+  
+  if (match) {
+    const [, operation, filePath, lineNum] = match
+    // Check if it's <unknown> - if so, try to get info from details
+    if (filePath === '<unknown>') {
+      // Extract Scala class info from details (e.g., "org.apache.spark.sql.Dataset.count(Dataset.scala:3625)")
+      const scalaMatch = details.match(/org\.apache\.spark\.sql\.(\w+)\.(\w+)\(([^:]+):(\d+)\)/)
+      if (scalaMatch) {
+        const [, className, methodName, scalaFile, scalaLine] = scalaMatch
+        return {
+          operation: operation.trim(),
+          location: `${className}.${methodName}`,
+          lineNum: scalaLine,
+          scalaClass: scalaFile
+        }
+      }
+      // Fallback for <unknown>
+      return {
+        operation: operation.trim(),
+        location: 'PySpark',
+        lineNum: '',
+        scalaClass: ''
+      }
+    }
+    
+    // Extract just the filename from the path
+    const fileName = filePath.split('/').pop() || filePath
+    return {
+      operation: operation.trim(),
+      location: fileName,
+      lineNum: lineNum,
+      scalaClass: ''
+    }
+  }
+  
+  // Handle "<unknown>:0" cases - try to infer from details
+  if (name.includes('<unknown>')) {
+    const operation = name.split(' at ')[0] || name
+    
+    // Try to extract from details
+    const scalaMatch = details.match(/org\.apache\.spark\.sql\.(\w+)\.(\w+)\(([^:]+):(\d+)\)/)
+    if (scalaMatch) {
+      const [, className, methodName, scalaFile, scalaLine] = scalaMatch
+      return {
+        operation: operation.trim(),
+        location: `${className}.${methodName}`,
+        lineNum: scalaLine,
+        scalaClass: scalaFile
+      }
+    }
+    
+    return {
+      operation: operation.trim(),
+      location: 'PySpark',
+      lineNum: '',
+      scalaClass: ''
+    }
+  }
+  
+  // Fallback: just return the name as operation
+  return {
+    operation: name || 'Unknown Operation',
+    location: '',
+    lineNum: '',
+    scalaClass: ''
+  }
 }
 
 interface SparkExecutor {
@@ -225,10 +301,12 @@ export default function UnifiedMonitor({ refreshInterval }: Props) {
   // Run Job State
   const [isRunSectionOpen, setIsRunSectionOpen] = useState(true)
   const [customCommand, setCustomCommand] = useState('')
+  const [selectedTemplate, setSelectedTemplate] = useState<JobTemplate | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitResult, setSubmitResult] = useState<{ success: boolean; message: string } | null>(null)
   const [currentJobName, setCurrentJobName] = useState<string | null>(null)
   const [executionSteps, setExecutionSteps] = useState<ExecutionStep[]>([])
+  const [jobOutput, setJobOutput] = useState<string[]>([])
   
   const fetchExecutionDetails = useCallback(async () => {
     try {
@@ -285,6 +363,7 @@ export default function UnifiedMonitor({ refreshInterval }: Props) {
     setIsSubmitting(true)
     setSubmitResult(null)
     setCurrentJobName(name)
+    setJobOutput([`[${new Date().toLocaleTimeString()}] Submitting "${name}"...`])
     setExecutionSteps([
       { step: 1, name: 'spark-submit', status: 'active', description: 'Submitting job to Spark Master...' },
       { step: 2, name: 'Driver Started', status: 'pending', description: 'Waiting for driver to start' },
@@ -299,23 +378,43 @@ export default function UnifiedMonitor({ refreshInterval }: Props) {
       const response = await fetch('/api/spark/submit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ command, jobId: `job-${Date.now()}` }),
+        body: JSON.stringify({ command, name, jobId: `job-${Date.now()}` }),
       })
       const result = await response.json()
       
       if (response.ok) {
         setSubmitResult({ success: true, message: `Job "${name}" submitted! Watch the execution flow below.` })
+        setJobOutput(prev => [...prev, `[${new Date().toLocaleTimeString()}] ✓ Job submitted successfully`])
         mutateApps()
       } else {
         setSubmitResult({ success: false, message: result.error || 'Failed to submit job' })
+        setJobOutput(prev => [...prev, `[${new Date().toLocaleTimeString()}] ✗ Error: ${result.error}`])
         setCurrentJobName(null)
       }
     } catch (error: any) {
       setSubmitResult({ success: false, message: error.message || 'Network error' })
+      setJobOutput(prev => [...prev, `[${new Date().toLocaleTimeString()}] ✗ Network error`])
       setCurrentJobName(null)
     } finally {
       setIsSubmitting(false)
     }
+  }
+
+  // Clear/Reset function
+  const clearExecution = () => {
+    setCurrentJobName(null)
+    setExecutionSteps([])
+    setSubmitResult(null)
+    setSelectedTemplate(null)
+    setCustomCommand('')
+    setJobOutput([])
+  }
+
+  // Select template (populate command, don't run)
+  const selectTemplate = (template: JobTemplate) => {
+    setSelectedTemplate(template)
+    setCustomCommand(template.command)
+    setSubmitResult(null)
   }
 
   const totalTasks = jobs.reduce((sum, j) => sum + (j.numTasks || 0), 0)
@@ -359,20 +458,29 @@ export default function UnifiedMonitor({ refreshInterval }: Props) {
         
         {isRunSectionOpen && (
           <div className="p-4 border-t border-spark-orange/30">
-            {/* Job Templates */}
+            {/* Job Templates - Click to populate, Run button to execute */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
               {jobTemplates.map((template) => (
                 <button
                   key={template.id}
-                  onClick={() => submitJob(template.command, template.name)}
-                  disabled={isSubmitting}
-                  className="bg-gray-800/50 border border-gray-700 rounded-lg p-3 hover:border-spark-orange/50 hover:bg-gray-800 transition-all text-left disabled:opacity-50"
+                  onClick={() => {
+                    setCustomCommand(template.command)
+                    setSelectedTemplate(template)
+                  }}
+                  className={`bg-gray-800/50 border rounded-lg p-3 hover:border-spark-orange/50 hover:bg-gray-800 transition-all text-left ${
+                    selectedTemplate?.id === template.id ? 'border-spark-orange ring-1 ring-spark-orange' : 'border-gray-700'
+                  }`}
                 >
                   <div className="flex items-center mb-2">
                     <span className="text-2xl mr-2">{template.icon}</span>
                     <span className="text-white font-medium text-sm">{template.name}</span>
                   </div>
                   <p className="text-gray-400 text-xs">{template.description}</p>
+                  {selectedTemplate?.id === template.id && (
+                    <div className="mt-2 text-xs text-spark-orange flex items-center">
+                      <CheckCircle className="h-3 w-3 mr-1" /> Selected
+                    </div>
+                  )}
                 </button>
               ))}
             </div>
@@ -392,13 +500,28 @@ export default function UnifiedMonitor({ refreshInterval }: Props) {
                   className="flex-1 bg-gray-800 border border-gray-600 rounded px-3 py-2 text-white text-sm font-mono placeholder-gray-500 focus:border-spark-orange focus:outline-none"
                 />
                 <button
-                  onClick={() => submitJob(customCommand, 'Custom Job')}
+                  onClick={() => submitJob(customCommand, selectedTemplate?.name || 'Custom Job')}
                   disabled={isSubmitting || !customCommand.trim()}
                   className="bg-spark-orange hover:bg-spark-orange/80 disabled:bg-gray-600 text-white px-4 py-2 rounded flex items-center text-sm font-medium"
                 >
                   {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4 mr-1" />}
                   Run
                 </button>
+                {(customCommand || selectedTemplate || submitResult || currentJobName) && (
+                  <button
+                    onClick={() => {
+                      setCustomCommand('')
+                      setSelectedTemplate(null)
+                      setSubmitResult(null)
+                      setCurrentJobName(null)
+                      setExecutionSteps([])
+                    }}
+                    className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded flex items-center text-sm font-medium"
+                  >
+                    <XCircle className="h-4 w-4 mr-1" />
+                    Clear
+                  </button>
+                )}
               </div>
             </div>
             
@@ -649,25 +772,97 @@ export default function UnifiedMonitor({ refreshInterval }: Props) {
       {/* ═══════════════════════════════════════════════════════════════════════════ */}
       <MonitorSection title="📊 Stages - Shuffle Boundaries" icon={Layers} color="text-purple-400" badge={`${stages.length} Stages`}>
         {stages.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead><tr className="text-gray-400 text-xs border-b border-gray-700"><th className="text-left p-2">Stage</th><th className="text-left p-2">Name</th><th className="text-center p-2">Tasks</th><th className="text-center p-2">Shuffle R/W</th><th className="text-center p-2">Status</th></tr></thead>
-              <tbody>
-                {stages.slice(0, 8).map((stage) => (
-                  <tr key={`${stage.stageId}-${stage.attemptId}`} className="border-b border-gray-800">
-                    <td className="p-2 text-gray-300">{stage.stageId}</td>
-                    <td className="p-2 text-white truncate max-w-xs text-xs">{stage.name}</td>
-                    <td className="p-2 text-center"><span className="text-green-400">{stage.numCompleteTasks}</span><span className="text-gray-500">/{stage.numTasks}</span></td>
-                    <td className="p-2 text-center text-xs"><span className="text-yellow-300">{formatBytes(stage.shuffleReadBytes)}</span>/<span className="text-orange-300">{formatBytes(stage.shuffleWriteBytes)}</span></td>
-                    <td className="p-2 text-center"><span className={`text-xs px-2 py-0.5 rounded ${stage.status === 'ACTIVE' ? 'bg-blue-500/20 text-blue-300' : stage.status === 'COMPLETE' ? 'bg-green-500/20 text-green-300' : 'bg-gray-500/20 text-gray-300'}`}>{stage.status}</span></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <>
+            {/* Stage Summary Stats */}
+            <div className="grid grid-cols-4 gap-3 mb-4">
+              <div className="bg-purple-500/10 border border-purple-500/30 rounded-lg p-3 text-center">
+                <p className="text-xl font-bold text-white">{stages.length}</p>
+                <p className="text-xs text-gray-400">Total Stages</p>
+              </div>
+              <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-3 text-center">
+                <p className="text-xl font-bold text-green-400">{stages.filter(s => s.status === 'COMPLETE').length}</p>
+                <p className="text-xs text-gray-400">Completed</p>
+              </div>
+              <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3 text-center">
+                <p className="text-xl font-bold text-blue-400">{stages.filter(s => s.status === 'ACTIVE').length}</p>
+                <p className="text-xs text-gray-400">Running</p>
+              </div>
+              <div className="bg-gray-500/10 border border-gray-500/30 rounded-lg p-3 text-center">
+                <p className="text-xl font-bold text-gray-400">{stages.filter(s => s.status === 'PENDING' || s.status === 'SKIPPED').length}</p>
+                <p className="text-xs text-gray-400">Pending/Skipped</p>
+              </div>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead><tr className="text-gray-400 text-xs border-b border-gray-700"><th className="text-left p-2">Stage</th><th className="text-left p-2">Name</th><th className="text-center p-2">Tasks</th><th className="text-center p-2">Input/Output</th><th className="text-center p-2">Shuffle R/W</th><th className="text-center p-2">Duration</th><th className="text-center p-2">Status</th></tr></thead>
+                <tbody>
+                  {stages.slice(0, 12).map((stage) => (
+                    <tr key={`${stage.stageId}-${stage.attemptId}`} className="border-b border-gray-800 hover:bg-gray-800/30">
+                      <td className="p-2 text-gray-300 font-mono">{stage.stageId}</td>
+                      <td className="p-2 text-white truncate max-w-xs text-xs">
+                        {(() => {
+                          const info = parseStageInfo(stage)
+                          return (
+                            <div>
+                              <span className="font-medium text-blue-300">{info.operation}</span>
+                              {info.location && (
+                                <span className="text-gray-400 ml-1">
+                                  @ <span className="font-mono text-green-400">{info.location}</span>
+                                  {info.lineNum && <span className="text-gray-500">:{info.lineNum}</span>}
+                                </span>
+                              )}
+                            </div>
+                          )
+                        })()}
+                      </td>
+                      <td className="p-2 text-center">
+                        <span className="text-green-400">{stage.numCompleteTasks}</span>
+                        <span className="text-gray-500">/{stage.numTasks}</span>
+                        {stage.numFailedTasks > 0 && <span className="text-red-400 ml-1">({stage.numFailedTasks} failed)</span>}
+                      </td>
+                      <td className="p-2 text-center text-xs">
+                        <span className="text-cyan-300">{formatBytes(stage.inputBytes || 0)}</span>
+                        <span className="text-gray-500">/</span>
+                        <span className="text-pink-300">{formatBytes(stage.outputBytes || 0)}</span>
+                      </td>
+                      <td className="p-2 text-center text-xs">
+                        <span className="text-yellow-300">{formatBytes(stage.shuffleReadBytes)}</span>
+                        <span className="text-gray-500">/</span>
+                        <span className="text-orange-300">{formatBytes(stage.shuffleWriteBytes)}</span>
+                      </td>
+                      <td className="p-2 text-center text-xs text-gray-300">
+                        {stage.executorRunTime ? `${(stage.executorRunTime / 1000).toFixed(1)}s` : '-'}
+                      </td>
+                      <td className="p-2 text-center">
+                        <span className={`text-xs px-2 py-0.5 rounded ${
+                          stage.status === 'ACTIVE' ? 'bg-blue-500/20 text-blue-300 animate-pulse' : 
+                          stage.status === 'COMPLETE' ? 'bg-green-500/20 text-green-300' : 
+                          stage.status === 'PENDING' ? 'bg-yellow-500/20 text-yellow-300' :
+                          stage.status === 'SKIPPED' ? 'bg-gray-500/20 text-gray-300' :
+                          'bg-gray-500/20 text-gray-300'
+                        }`}>{stage.status}</span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {stages.length > 12 && <p className="text-gray-400 text-xs text-center mt-2">Showing 12 of {stages.length} stages...</p>}
+            </div>
+          </>
+        ) : (
+          <div className="text-center py-6 text-gray-400">
+            <Layers className="h-10 w-10 mx-auto mb-2 opacity-50" />
+            <p className="mb-2">No stages - run a job to see stages</p>
+            <p className="text-xs text-gray-500">Stages appear when a job is running. Each stage contains tasks that can run in parallel.</p>
           </div>
-        ) : <div className="text-center py-6 text-gray-400"><Layers className="h-10 w-10 mx-auto mb-2 opacity-50" /><p>No stages - run a job to see stages</p></div>}
+        )}
         <LearnBox title="📚 What are Stages?" color="purple">
-          <p>A <strong>Stage</strong> is a set of tasks that can run without shuffling. Spark creates a new stage at each <em>wide</em> transformation (groupBy, join). Fewer stages = less shuffling = faster jobs.</p>
+          <p className="mb-2">A <strong>Stage</strong> is a set of tasks that can run without shuffling. Spark creates a new stage at each <em>wide</em> transformation (groupBy, join).</p>
+          <ul className="list-disc list-inside space-y-1 text-xs ml-2">
+            <li><strong>Input/Output</strong>: Data read from source / written to next stage or storage</li>
+            <li><strong>Shuffle R/W</strong>: Data exchanged between nodes (expensive!)</li>
+            <li><strong>Fewer stages = less shuffling = faster jobs</strong></li>
+          </ul>
         </LearnBox>
       </MonitorSection>
 
@@ -680,15 +875,83 @@ export default function UnifiedMonitor({ refreshInterval }: Props) {
             <ArrowDown className="h-6 w-6 text-yellow-400 mx-auto mb-2" />
             <p className="text-2xl font-bold text-white">{formatBytes(totalShuffleRead)}</p>
             <p className="text-xs text-gray-400">Shuffle Read</p>
+            <p className="text-xs text-gray-500 mt-1">Data pulled from other executors</p>
           </div>
           <div className="bg-orange-500/10 border border-orange-500/30 rounded-lg p-4 text-center">
             <ArrowRight className="h-6 w-6 text-orange-400 mx-auto mb-2" />
             <p className="text-2xl font-bold text-white">{formatBytes(totalShuffleWrite)}</p>
             <p className="text-xs text-gray-400">Shuffle Write</p>
+            <p className="text-xs text-gray-500 mt-1">Data sent to other executors</p>
           </div>
         </div>
+        
+        {/* Explanation for 0B shuffle */}
+        {totalShuffleRead === 0 && totalShuffleWrite === 0 && (
+          <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-3 mb-4">
+            <div className="flex items-start">
+              <Activity className="h-5 w-5 text-gray-400 mr-2 mt-0.5" />
+              <div>
+                <p className="text-gray-300 text-sm font-medium">Why is shuffle showing 0B?</p>
+                <ul className="text-gray-400 text-xs mt-1 space-y-1">
+                  <li>• <strong>No job running:</strong> Shuffle only occurs during job execution</li>
+                  <li>• <strong>Narrow transformations only:</strong> map(), filter(), flatMap() don't require shuffle</li>
+                  <li>• <strong>Single partition:</strong> If data fits in one partition, no shuffle needed</li>
+                  <li>• <strong>Cached data:</strong> Reading from cache may skip shuffle</li>
+                </ul>
+                <p className="text-gray-500 text-xs mt-2 italic">Run a job with groupBy, join, or reduceByKey to see shuffle metrics!</p>
+              </div>
+            </div>
+          </div>
+        )}
+        
+        {/* Shuffle per stage breakdown when data exists */}
+        {stages.some(s => s.shuffleReadBytes > 0 || s.shuffleWriteBytes > 0) && (
+          <div className="bg-gray-800/50 rounded-lg p-3 mb-4">
+            <h4 className="text-white text-sm font-medium mb-2">Shuffle by Stage</h4>
+            <div className="space-y-2">
+              {stages.filter(s => s.shuffleReadBytes > 0 || s.shuffleWriteBytes > 0).slice(0, 5).map(stage => {
+                const info = parseStageInfo(stage)
+                return (
+                  <div key={stage.stageId} className="flex items-center justify-between text-xs bg-gray-900/50 rounded p-2">
+                    <span className="text-gray-300">
+                      Stage {stage.stageId}: <span className="text-blue-300">{info.operation}</span>
+                      {info.location && info.location !== 'internal' && (
+                        <span className="text-gray-500 ml-1">@ {info.location}{info.lineNum && `:${info.lineNum}`}</span>
+                      )}
+                    </span>
+                    <div className="flex gap-3">
+                      <span className="text-yellow-300">↓{formatBytes(stage.shuffleReadBytes)}</span>
+                      <span className="text-orange-300">↑{formatBytes(stage.shuffleWriteBytes)}</span>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
+        
         <LearnBox title="📚 What is Shuffle?" color="yellow">
-          <p><strong>Shuffle</strong> is when data moves between nodes - the most expensive operation! Happens during groupBy, join, reduceByKey. To minimize: 1) Filter early, 2) Use broadcast joins for small tables, 3) Use <code className="bg-gray-800 px-1 rounded">reduceByKey</code> not <code className="bg-gray-800 px-1 rounded">groupByKey</code>.</p>
+          <p className="mb-2"><strong>Shuffle</strong> is when data moves between nodes - the most expensive operation!</p>
+          <div className="grid grid-cols-2 gap-2 text-xs mb-2">
+            <div className="bg-gray-800/50 rounded p-2">
+              <p className="text-yellow-300 font-medium">Causes Shuffle:</p>
+              <ul className="text-gray-400 mt-1">
+                <li>• groupBy(), groupByKey()</li>
+                <li>• join(), cogroup()</li>
+                <li>• reduceByKey(), aggregateByKey()</li>
+                <li>• repartition(), coalesce()</li>
+              </ul>
+            </div>
+            <div className="bg-gray-800/50 rounded p-2">
+              <p className="text-green-300 font-medium">Minimize Shuffle:</p>
+              <ul className="text-gray-400 mt-1">
+                <li>• Filter early (less data to move)</li>
+                <li>• Broadcast small tables</li>
+                <li>• Use reduceByKey over groupByKey</li>
+                <li>• Partition by join key</li>
+              </ul>
+            </div>
+          </div>
         </LearnBox>
       </MonitorSection>
 
@@ -696,13 +959,112 @@ export default function UnifiedMonitor({ refreshInterval }: Props) {
       {/* SECTION 8: MAP & TRANSFORMATIONS */}
       {/* ═══════════════════════════════════════════════════════════════════════════ */}
       <MonitorSection title="🔧 Map & Transformations" icon={Filter} color="text-green-400" badge="Operations" defaultExpanded={false}>
+        {/* Live Transformation Output - when job is running */}
+        {stages.length > 0 && (
+          <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-4 mb-4">
+            <h4 className="text-white font-medium mb-3 flex items-center">
+              <Activity className="h-4 w-4 text-green-400 mr-2 animate-pulse" />
+              Live Transformations from Current Job
+            </h4>
+            <div className="space-y-2 max-h-48 overflow-y-auto">
+              {stages.map((stage, idx) => {
+                // Parse transformation from stage name
+                const stageName = stage.name || ''
+                const transformations: string[] = []
+                
+                // Detect common transformations
+                if (stageName.includes('map') || stageName.includes('Map')) transformations.push('map')
+                if (stageName.includes('filter') || stageName.includes('Filter')) transformations.push('filter')
+                if (stageName.includes('flatMap') || stageName.includes('FlatMap')) transformations.push('flatMap')
+                if (stageName.includes('groupBy') || stageName.includes('GroupBy')) transformations.push('groupBy')
+                if (stageName.includes('reduceBy') || stageName.includes('ReduceBy')) transformations.push('reduceByKey')
+                if (stageName.includes('join') || stageName.includes('Join')) transformations.push('join')
+                if (stageName.includes('agg') || stageName.includes('Agg')) transformations.push('aggregate')
+                if (stageName.includes('count') || stageName.includes('Count')) transformations.push('count')
+                if (stageName.includes('collect') || stageName.includes('Collect')) transformations.push('collect')
+                if (stageName.includes('write') || stageName.includes('Write') || stageName.includes('save')) transformations.push('write')
+                if (stageName.includes('show') || stageName.includes('Show')) transformations.push('show')
+                if (stageName.includes('take') || stageName.includes('Take')) transformations.push('take')
+                if (stageName.includes('distinct') || stageName.includes('Distinct')) transformations.push('distinct')
+                if (stageName.includes('union') || stageName.includes('Union')) transformations.push('union')
+                if (stageName.includes('sort') || stageName.includes('Sort') || stageName.includes('orderBy')) transformations.push('sort')
+                if (stageName.includes('cache') || stageName.includes('Cache') || stageName.includes('persist')) transformations.push('cache')
+                
+                const isWide = transformations.some(t => ['groupBy', 'reduceByKey', 'join', 'aggregate', 'distinct', 'sort'].includes(t))
+                
+                return (
+                  <div key={`${stage.stageId}-${stage.attemptId}`} className={`flex items-center justify-between p-2 rounded text-xs ${
+                    stage.status === 'ACTIVE' ? 'bg-blue-500/20 border border-blue-500/50' : 
+                    stage.status === 'COMPLETE' ? 'bg-green-500/10 border border-green-500/30' : 
+                    'bg-gray-900/50 border border-gray-700'
+                  }`}>
+                    <div className="flex items-center">
+                      <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs mr-2 ${
+                        stage.status === 'COMPLETE' ? 'bg-green-500 text-white' :
+                        stage.status === 'ACTIVE' ? 'bg-blue-500 text-white animate-pulse' :
+                        'bg-gray-600 text-gray-300'
+                      }`}>
+                        {stage.status === 'COMPLETE' ? '✓' : stage.stageId}
+                      </span>
+                      <div>
+                        {(() => {
+                          const info = parseStageInfo(stage)
+                          return (
+                            <span className="truncate max-w-xs block">
+                              <span className="text-blue-300 font-medium">{info.operation}</span>
+                              {info.location && info.location !== 'internal' && (
+                                <span className="text-gray-400 ml-1">
+                                  @ <span className="text-green-400">{info.location}</span>
+                                  {info.lineNum && <span className="text-gray-500">:{info.lineNum}</span>}
+                                </span>
+                              )}
+                              {info.location === 'internal' && (
+                                <span className="text-gray-500 ml-1">(internal)</span>
+                              )}
+                            </span>
+                          )
+                        })()}
+                        {transformations.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {transformations.map((t, i) => (
+                              <span key={i} className={`px-1.5 py-0.5 rounded text-xs ${
+                                ['groupBy', 'reduceByKey', 'join', 'aggregate', 'distinct', 'sort'].includes(t) 
+                                  ? 'bg-yellow-500/20 text-yellow-300' 
+                                  : 'bg-green-500/20 text-green-300'
+                              }`}>
+                                {t}{['groupBy', 'reduceByKey', 'join', 'aggregate', 'distinct', 'sort'].includes(t) ? ' ⚠️' : ' ✓'}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <span className={`px-2 py-0.5 rounded text-xs ${
+                        stage.status === 'ACTIVE' ? 'bg-blue-500/30 text-blue-300' :
+                        stage.status === 'COMPLETE' ? 'bg-green-500/30 text-green-300' :
+                        'bg-gray-500/30 text-gray-400'
+                      }`}>
+                        {stage.status}
+                      </span>
+                      {isWide && <span className="block text-yellow-400 text-xs mt-1">Shuffle!</span>}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
+        
         <div className="grid grid-cols-2 gap-4">
           <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-3">
             <h4 className="text-green-400 font-medium mb-2 text-sm">Narrow (No Shuffle) ✓</h4>
             <div className="space-y-1 text-xs">
-              <div className="flex justify-between bg-gray-800/50 rounded p-1"><code className="text-green-400">.map()</code><span className="text-gray-400">1 → 1</span></div>
+              <div className="flex justify-between bg-gray-800/50 rounded p-1"><code className="text-green-400">.map()</code><span className="text-gray-400">1 → 1 transform</span></div>
               <div className="flex justify-between bg-gray-800/50 rounded p-1"><code className="text-green-400">.filter()</code><span className="text-gray-400">Keep matching</span></div>
               <div className="flex justify-between bg-gray-800/50 rounded p-1"><code className="text-green-400">.flatMap()</code><span className="text-gray-400">1 → many</span></div>
+              <div className="flex justify-between bg-gray-800/50 rounded p-1"><code className="text-green-400">.mapPartitions()</code><span className="text-gray-400">Batch per partition</span></div>
+              <div className="flex justify-between bg-gray-800/50 rounded p-1"><code className="text-green-400">.union()</code><span className="text-gray-400">Combine RDDs</span></div>
             </div>
           </div>
           <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3">
@@ -710,12 +1072,22 @@ export default function UnifiedMonitor({ refreshInterval }: Props) {
             <div className="space-y-1 text-xs">
               <div className="flex justify-between bg-gray-800/50 rounded p-1"><code className="text-yellow-400">.groupBy()</code><span className="text-gray-400">Group by key</span></div>
               <div className="flex justify-between bg-gray-800/50 rounded p-1"><code className="text-yellow-400">.join()</code><span className="text-gray-400">Combine DFs</span></div>
-              <div className="flex justify-between bg-gray-800/50 rounded p-1"><code className="text-yellow-400">.reduceByKey()</code><span className="text-gray-400">Aggregate</span></div>
+              <div className="flex justify-between bg-gray-800/50 rounded p-1"><code className="text-yellow-400">.reduceByKey()</code><span className="text-gray-400">Aggregate by key</span></div>
+              <div className="flex justify-between bg-gray-800/50 rounded p-1"><code className="text-yellow-400">.distinct()</code><span className="text-gray-400">Remove dups</span></div>
+              <div className="flex justify-between bg-gray-800/50 rounded p-1"><code className="text-yellow-400">.orderBy()</code><span className="text-gray-400">Sort globally</span></div>
             </div>
           </div>
         </div>
-        <LearnBox title="�� Lazy Evaluation" color="green">
-          <p>Transformations don't execute immediately! Spark builds a DAG. Execution only happens when you call an <strong>Action</strong> like <code className="bg-gray-800 px-1 rounded">.collect()</code>, <code className="bg-gray-800 px-1 rounded">.count()</code>, or <code className="bg-gray-800 px-1 rounded">.write()</code>.</p>
+        <LearnBox title="📚 Lazy Evaluation & DAG" color="green">
+          <p className="mb-2">Transformations don't execute immediately! Spark builds a <strong>Directed Acyclic Graph (DAG)</strong> of operations.</p>
+          <div className="bg-gray-800/50 rounded p-2 text-xs font-mono">
+            <span className="text-gray-400"># Nothing happens yet...</span><br />
+            <span className="text-blue-300">df</span> = spark.read.csv(<span className="text-green-300">"data.csv"</span>)<br />
+            <span className="text-blue-300">df2</span> = df.filter(col(<span className="text-green-300">"age"</span>) {'>'} 21)<br />
+            <span className="text-blue-300">df3</span> = df2.groupBy(<span className="text-green-300">"city"</span>).count()<br />
+            <span className="text-gray-400"># NOW execution happens!</span><br />
+            df3.<span className="text-yellow-300">show()</span>  <span className="text-gray-400"># Action triggers DAG execution</span>
+          </div>
         </LearnBox>
       </MonitorSection>
 
@@ -723,21 +1095,94 @@ export default function UnifiedMonitor({ refreshInterval }: Props) {
       {/* SECTION 9: TASK SCHEDULING */}
       {/* ═══════════════════════════════════════════════════════════════════════════ */}
       <MonitorSection title="📋 Task Scheduling & Resources" icon={Settings} color="text-blue-400" badge="Scheduler" defaultExpanded={false}>
+        {/* Live Task Distribution */}
+        {jobs.length > 0 && (
+          <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4 mb-4">
+            <h4 className="text-white font-medium mb-3 flex items-center">
+              <Activity className="h-4 w-4 text-blue-400 mr-2 animate-pulse" />
+              Live Task Distribution
+            </h4>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="bg-gray-800/50 rounded p-3 text-center">
+                <p className="text-2xl font-bold text-white">{totalTasks}</p>
+                <p className="text-xs text-gray-400">Total Tasks</p>
+              </div>
+              <div className="bg-gray-800/50 rounded p-3 text-center">
+                <p className="text-2xl font-bold text-blue-400">{jobs.reduce((sum, j) => sum + j.numActiveTasks, 0)}</p>
+                <p className="text-xs text-gray-400">Active</p>
+              </div>
+              <div className="bg-gray-800/50 rounded p-3 text-center">
+                <p className="text-2xl font-bold text-green-400">{completedTasks}</p>
+                <p className="text-xs text-gray-400">Completed</p>
+              </div>
+              <div className="bg-gray-800/50 rounded p-3 text-center">
+                <p className="text-2xl font-bold text-red-400">{jobs.reduce((sum, j) => sum + j.numFailedTasks, 0)}</p>
+                <p className="text-xs text-gray-400">Failed</p>
+              </div>
+            </div>
+            
+            {/* Task per Executor */}
+            {executors.length > 0 && (
+              <div className="mt-4">
+                <h5 className="text-gray-300 text-sm mb-2">Tasks per Executor</h5>
+                <div className="space-y-2">
+                  {executors.filter(e => e.id !== 'driver').map(executor => (
+                    <div key={executor.id} className="flex items-center bg-gray-900/50 rounded p-2">
+                      <span className="text-gray-400 text-xs w-24 truncate">{executor.id}</span>
+                      <div className="flex-1 mx-3 h-4 bg-gray-700 rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-gradient-to-r from-blue-500 to-green-500" 
+                          style={{ width: `${executor.totalCores > 0 ? (executor.activeTasks / executor.totalCores) * 100 : 0}%` }}
+                        />
+                      </div>
+                      <span className="text-white text-xs w-20 text-right">
+                        {executor.activeTasks || 0}/{executor.totalCores} cores
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+        
         <div className="grid grid-cols-2 gap-4">
           <div className="bg-gray-900/50 rounded-lg p-4">
             <h4 className="text-white font-medium mb-2 text-sm">Cluster Resources</h4>
             <div className="space-y-2">
-              <div><div className="flex justify-between text-xs mb-1"><span className="text-gray-400">Cores</span><span className="text-white">{cluster?.coresused || 0}/{cluster?.cores || 0}</span></div><div className="h-2 bg-gray-700 rounded-full"><div className="h-full bg-green-500 rounded-full" style={{ width: `${cluster?.cores ? (cluster.coresused / cluster.cores) * 100 : 0}%` }} /></div></div>
-              <div><div className="flex justify-between text-xs mb-1"><span className="text-gray-400">Memory</span><span className="text-white">{formatBytes((cluster?.memoryused || 0) * 1024 * 1024)}/{formatBytes((cluster?.memory || 0) * 1024 * 1024)}</span></div><div className="h-2 bg-gray-700 rounded-full"><div className="h-full bg-purple-500 rounded-full" style={{ width: `${cluster?.memory ? (cluster.memoryused / cluster.memory) * 100 : 0}%` }} /></div></div>
+              <div>
+                <div className="flex justify-between text-xs mb-1">
+                  <span className="text-gray-400">Cores</span>
+                  <span className="text-white">{cluster?.coresused || 0}/{cluster?.cores || 0} used</span>
+                </div>
+                <div className="h-2 bg-gray-700 rounded-full">
+                  <div className="h-full bg-green-500 rounded-full transition-all duration-500" style={{ width: `${cluster?.cores ? (cluster.coresused / cluster.cores) * 100 : 0}%` }} />
+                </div>
+              </div>
+              <div>
+                <div className="flex justify-between text-xs mb-1">
+                  <span className="text-gray-400">Memory</span>
+                  <span className="text-white">{formatBytes((cluster?.memoryused || 0) * 1024 * 1024)}/{formatBytes((cluster?.memory || 0) * 1024 * 1024)}</span>
+                </div>
+                <div className="h-2 bg-gray-700 rounded-full">
+                  <div className="h-full bg-purple-500 rounded-full transition-all duration-500" style={{ width: `${cluster?.memory ? (cluster.memoryused / cluster.memory) * 100 : 0}%` }} />
+                </div>
+              </div>
+              <div>
+                <div className="flex justify-between text-xs mb-1">
+                  <span className="text-gray-400">Workers</span>
+                  <span className="text-white">{cluster?.aliveworkers || 0} alive</span>
+                </div>
+              </div>
             </div>
           </div>
           <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
-            <h4 className="text-blue-400 font-medium mb-2 text-sm">Scheduling Steps</h4>
-            <ol className="space-y-1 text-xs text-gray-300 list-decimal list-inside">
-              <li>Driver builds DAG</li>
-              <li>DAG Scheduler creates stages</li>
-              <li>Task Scheduler assigns to executors</li>
-              <li>Executors run tasks on partitions</li>
+            <h4 className="text-blue-400 font-medium mb-2 text-sm">Scheduling Pipeline</h4>
+            <ol className="space-y-2 text-xs text-gray-300">
+              <li className="flex items-center"><span className="w-5 h-5 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs mr-2">1</span>Driver builds DAG from code</li>
+              <li className="flex items-center"><span className="w-5 h-5 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs mr-2">2</span>DAG Scheduler splits at shuffles</li>
+              <li className="flex items-center"><span className="w-5 h-5 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs mr-2">3</span>Task Scheduler → executors</li>
+              <li className="flex items-center"><span className="w-5 h-5 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs mr-2">4</span>Tasks run on data partitions</li>
             </ol>
           </div>
         </div>
