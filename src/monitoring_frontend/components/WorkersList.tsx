@@ -61,18 +61,18 @@ export default function WorkersList({ refreshInterval }: Props) {
                 </td>
                 <td className="px-4 py-3">
                   <div className="text-sm text-white">
-                    {worker.coresUsed || 0} / {worker.cores || 0}
+                    {worker.coresused || 0} / {worker.cores || 0}
                   </div>
                   <div className="mt-1 bg-gray-700 rounded-full h-1.5 w-20">
                     <div
                       className="bg-green-500 h-1.5 rounded-full"
-                      style={{ width: `${((worker.coresUsed || 0) / (worker.cores || 1)) * 100}%` }}
+                      style={{ width: `${((worker.coresused || 0) / (worker.cores || 1)) * 100}%` }}
                     ></div>
                   </div>
                 </td>
                 <td className="px-4 py-3">
                   <div className="text-sm text-white">
-                    {formatBytes((worker.memoryUsed || 0) * 1024 * 1024)}
+                    {formatBytes((worker.memoryused || 0) * 1024 * 1024)}
                   </div>
                   <div className="text-xs text-gray-400">
                     of {formatBytes((worker.memory || 0) * 1024 * 1024)}

@@ -1,6 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  output: 'standalone', // Required for Docker deployment
   env: {
     SPARK_MASTER_URL: process.env.SPARK_MASTER_URL || 'http://localhost:9080',
     SPARK_APP_URL: process.env.SPARK_APP_URL || 'http://localhost:4040',

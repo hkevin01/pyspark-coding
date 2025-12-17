@@ -79,6 +79,18 @@ wait_for_service() {
 # Main script starts here
 print_header "🚀 PySpark Monitoring Dashboard Launch Script"
 
+echo -e "${CYAN}This script will perform the following checks and setup:${NC}"
+echo -e "  1. ✓ Prerequisites (Docker, Docker Compose, Node.js, npm, Chrome)"
+echo -e "  2. ✓ File structure verification"
+echo -e "  3. ✓ Existing Spark cluster detection and cleanup"
+echo -e "  4. ✓ Port conflict resolution"
+echo -e "  5. ✓ Next.js configuration validation"
+echo -e "  6. ✓ npm dependencies installation"
+echo -e "  7. ✓ Docker images availability"
+echo -e "  8. ✓ Service startup and health checks"
+echo -e "  9. ✓ Browser launch"
+echo ""
+
 # Step 1: Check prerequisites
 print_header "📋 Step 1: Checking Prerequisites"
 
@@ -92,8 +104,16 @@ else
     MISSING_DEPS=1
 fi
 
-if command_exists docker-compose; then
+if command_exists docker-compose || docker compose version >/dev/null 2>&1; then
     print_success "Docker Compose is installed"
+    # Detect which docker-compose command to use
+    if docker compose version >/dev/null 2>&1; then
+        DOCKER_COMPOSE_CMD="docker compose"
+        print_info "Using: docker compose (v2)"
+    else
+        DOCKER_COMPOSE_CMD="docker-compose"
+        print_info "Using: docker-compose (v1)"
+    fi
 else
     print_error "Docker Compose is not installed"
     MISSING_DEPS=1
@@ -134,6 +154,15 @@ if [ $MISSING_DEPS -eq 1 ]; then
     exit 1
 fi
 
+# Check if Docker daemon is running
+print_step "Checking Docker daemon..."
+if ! docker ps >/dev/null 2>&1; then
+    print_error "Docker daemon is not running"
+    print_info "Start Docker with: sudo systemctl start docker"
+    exit 1
+fi
+print_success "Docker daemon is running"
+
 # Step 2: Check file structure
 print_header "📁 Step 2: Verifying File Structure"
 
@@ -155,8 +184,43 @@ for file in "${REQUIRED_FILES[@]}"; do
     fi
 done
 
-# Step 3: Check and handle port conflicts
-print_header "🔌 Step 3: Checking Port Availability"
+# Step 3: Check for existing Spark clusters
+print_header "🔍 Step 3: Checking for Existing Spark Clusters"
+
+# Check if old spark cluster is running
+OLD_CLUSTER_RUNNING=0
+if docker ps --format "{{.Names}}" | grep -q "^spark-master$"; then
+    print_warning "Found running Spark cluster (old setup)"
+    OLD_CLUSTER_RUNNING=1
+fi
+
+# Check if monitoring stack is already running
+MONITORING_RUNNING=0
+if docker ps --format "{{.Names}}" | grep -q "^pyspark-monitoring-dashboard$"; then
+    print_info "Monitoring stack is already running"
+    MONITORING_RUNNING=1
+fi
+
+if [ $OLD_CLUSTER_RUNNING -eq 1 ]; then
+    print_step "Stopping old Spark cluster to avoid conflicts..."
+    
+    # Try to stop old cluster from docker/spark-cluster
+    if [ -f "$PROJECT_ROOT/docker/spark-cluster/docker-compose.yml" ]; then
+        cd "$PROJECT_ROOT/docker/spark-cluster"
+        $DOCKER_COMPOSE_CMD down 2>/dev/null || true
+        print_success "Old Spark cluster stopped"
+    else
+        # Fallback: stop containers manually
+        print_info "Stopping Spark containers manually..."
+        docker stop spark-master spark-worker-1 spark-worker-2 spark-worker-3 2>/dev/null || true
+        docker rm spark-master spark-worker-1 spark-worker-2 spark-worker-3 2>/dev/null || true
+        print_success "Old containers stopped and removed"
+    fi
+    sleep 2
+fi
+
+# Step 4: Check port availability
+print_header "🔌 Step 4: Checking Port Availability"
 
 PORTS=(3000 9080 9090 8081 8082 8083 4040 7077)
 PORT_NAMES=("Dashboard" "Spark Master" "Prometheus" "Worker 1" "Worker 2" "Worker 3" "App UI" "Spark Cluster")
@@ -175,14 +239,54 @@ for i in "${!PORTS[@]}"; do
 done
 
 if [ $CONFLICTS -eq 1 ]; then
-    print_warning "Some ports are in use. Attempting to clean up..."
+    print_warning "Some ports still in use. Stopping monitoring stack..."
     cd "$PROJECT_ROOT"
-    docker-compose -f docker-compose.monitoring.yml down 2>/dev/null || true
+    $DOCKER_COMPOSE_CMD -f docker-compose.monitoring.yml down 2>/dev/null || true
     sleep 3
+    
+    # Recheck ports
+    STILL_CONFLICTS=0
+    for i in "${!PORTS[@]}"; do
+        port=${PORTS[$i]}
+        if port_in_use $port; then
+            print_error "Port $port still in use after cleanup"
+            STILL_CONFLICTS=1
+        fi
+    done
+    
+    if [ $STILL_CONFLICTS -eq 1 ]; then
+        print_error "Unable to free all required ports"
+        print_info "Check which process is using the ports: sudo lsof -i :3000"
+        exit 1
+    fi
+    print_success "All ports are now available"
 fi
 
-# Step 4: Install npm dependencies
-print_header "�� Step 4: Installing npm Dependencies"
+# Step 5: Verify Next.js configuration
+print_header "📝 Step 5: Verifying Next.js Configuration"
+
+print_step "Checking next.config.js for standalone output..."
+if grep -q "output.*:.*['\"]standalone['\"]" "$FRONTEND_DIR/next.config.js"; then
+    print_success "Next.js configured for Docker deployment"
+else
+    print_warning "Adding standalone output to next.config.js..."
+    # Backup original
+    cp "$FRONTEND_DIR/next.config.js" "$FRONTEND_DIR/next.config.js.bak"
+    
+    # Add output: 'standalone' after reactStrictMode
+    sed -i "/reactStrictMode:/a \ \ output: 'standalone'," "$FRONTEND_DIR/next.config.js"
+    
+    if grep -q "output.*:.*['\"]standalone['\"]" "$FRONTEND_DIR/next.config.js"; then
+        print_success "Configuration updated successfully"
+    else
+        print_error "Failed to update configuration"
+        print_info "Please add output: 'standalone' to next.config.js manually"
+        exit 1
+    fi
+fi
+
+# Step 6: Install npm dependencies
+print_header "📦 Step 6: Installing npm Dependencies"
 
 cd "$FRONTEND_DIR"
 if [ ! -d "node_modules" ]; then
@@ -195,24 +299,105 @@ else
     print_success "Dependencies are up to date"
 fi
 
-# Step 5: Start Docker services
-print_header "🐳 Step 5: Starting Docker Services"
+# Fix security vulnerabilities if any
+print_step "Checking for security vulnerabilities..."
+if npm audit >/dev/null 2>&1; then
+    print_info "Running npm audit fix to address vulnerabilities..."
+    npm audit fix --force >/dev/null 2>&1 || true
+    print_success "Security check complete"
+else
+    print_success "No npm audit available or no vulnerabilities found"
+fi
+
+# Step 7: Check Docker images
+print_header "🐋 Step 7: Checking Docker Images"
+
+print_step "Checking for required Docker images..."
+IMAGES_TO_CHECK=("apache/spark:3.5.0" "prom/prometheus:latest")
+MISSING_IMAGES=0
+
+for img in "${IMAGES_TO_CHECK[@]}"; do
+    if docker images --format "{{.Repository}}:{{.Tag}}" | grep -q "^$img$"; then
+        print_success "Found: $img"
+    else
+        print_warning "Missing: $img (will be downloaded)"
+        MISSING_IMAGES=1
+    fi
+done
+
+if [ $MISSING_IMAGES -eq 1 ]; then
+    print_info "First-time setup will download Docker images (~300 MB)"
+    print_info "This may take 2-5 minutes depending on your connection"
+fi
+
+# Check if dashboard image exists
+if docker images --format "{{.Repository}}" | grep -q "pyspark-coding-monitoring-dashboard"; then
+    print_success "Dashboard image exists"
+else
+    print_info "Dashboard image will be built from source (~2 minutes)"
+fi
+
+# Step 8: Start Docker services
+print_header "🐳 Step 8: Starting Docker Services"
 
 cd "$PROJECT_ROOT"
 print_step "Starting Spark cluster, Prometheus, and monitoring dashboard..."
-docker-compose -f docker-compose.monitoring.yml up -d
+if ! $DOCKER_COMPOSE_CMD -f docker-compose.monitoring.yml up -d; then
+    print_error "Failed to start Docker services"
+    print_info "Check logs with: $DOCKER_COMPOSE_CMD -f docker-compose.monitoring.yml logs"
+    exit 1
+fi
 
 print_success "Docker services started"
 
-# Step 6: Wait for services to be ready
-print_header "⏳ Step 6: Waiting for Services to Initialize"
+# Verify all containers are running
+print_step "Verifying containers are running..."
+sleep 3
+EXPECTED_CONTAINERS=("spark-master" "spark-worker-1" "spark-worker-2" "spark-worker-3" "prometheus" "pyspark-monitoring-dashboard")
+FAILED_CONTAINERS=0
 
-wait_for_service "http://localhost:9080" "Spark Master" || exit 1
-wait_for_service "http://localhost:9090" "Prometheus" || exit 1
-wait_for_service "http://localhost:3000" "Monitoring Dashboard" || exit 1
+for container in "${EXPECTED_CONTAINERS[@]}"; do
+    if docker ps --format "{{.Names}}" | grep -q "^$container$"; then
+        print_success "Container running: $container"
+    else
+        print_error "Container not running: $container"
+        FAILED_CONTAINERS=1
+    fi
+done
 
-# Step 7: Verify services
-print_header "✅ Step 7: Verifying Services"
+if [ $FAILED_CONTAINERS -eq 1 ]; then
+    print_error "Some containers failed to start"
+    print_info "Checking logs for errors..."
+    $DOCKER_COMPOSE_CMD -f docker-compose.monitoring.yml logs --tail=20
+    exit 1
+fi
+
+# Step 9: Wait for services to be ready
+print_header "⏳ Step 9: Waiting for Services to Initialize"
+
+wait_for_service "http://localhost:9080" "Spark Master" || {
+    print_error "Spark Master failed to respond"
+    print_info "Checking Spark Master logs..."
+    docker logs spark-master --tail=30
+    exit 1
+}
+
+wait_for_service "http://localhost:9090" "Prometheus" || {
+    print_error "Prometheus failed to respond"
+    print_info "Checking Prometheus logs..."
+    docker logs prometheus --tail=30
+    exit 1
+}
+
+wait_for_service "http://localhost:3000" "Monitoring Dashboard" || {
+    print_error "Dashboard failed to respond"
+    print_info "Checking Dashboard logs..."
+    docker logs pyspark-monitoring-dashboard --tail=30
+    exit 1
+}
+
+# Step 10: Verify services
+print_header "✅ Step 10: Verifying Services"
 
 print_step "Checking Spark Master..."
 if curl -s http://localhost:9080 | grep -q "Spark Master"; then
@@ -230,10 +415,22 @@ fi
 
 print_step "Checking Workers..."
 WORKERS_UP=$(docker ps --filter "name=spark-worker" --format "{{.Names}}" | wc -l)
-print_info "Found $WORKERS_UP worker(s) running"
+if [ $WORKERS_UP -eq 3 ]; then
+    print_success "All 3 workers are running"
+else
+    print_warning "Expected 3 workers, found $WORKERS_UP"
+fi
 
-# Step 8: Display service URLs
-print_header "🌐 Step 8: Service URLs"
+# Verify dashboard can reach Spark API
+print_step "Testing dashboard connectivity..."
+if curl -s http://localhost:3000 | grep -q "PySpark"; then
+    print_success "Dashboard is serving content"
+else
+    print_warning "Dashboard may not be fully initialized"
+fi
+
+# Step 11: Display service URLs
+print_header "🌐 Step 11: Service URLs"
 
 echo -e "${GREEN}Dashboard:${NC}        http://localhost:3000"
 echo -e "${GREEN}Spark Master UI:${NC}  http://localhost:9080"
@@ -243,8 +440,8 @@ echo -e "${GREEN}Worker 2 UI:${NC}      http://localhost:8082"
 echo -e "${GREEN}Worker 3 UI:${NC}      http://localhost:8083"
 echo -e "${GREEN}App UI:${NC}           http://localhost:4040 ${YELLOW}(when job running)${NC}"
 
-# Step 9: Launch Chrome
-print_header "🌍 Step 9: Launching Dashboard in Chrome"
+# Step 12: Launch Chrome
+print_header "🌍 Step 12: Launching Dashboard in Chrome"
 
 print_step "Opening http://localhost:3000 in Chrome..."
 sleep 2
@@ -257,8 +454,8 @@ else
     print_success "Dashboard opened in Chrome"
 fi
 
-# Step 10: Show helpful tips
-print_header "💡 Quick Tips"
+# Step 13: Show helpful tips
+print_header "💡 Step 13: Quick Tips & Usage"
 
 echo -e "${CYAN}Dashboard Features:${NC}"
 echo -e "  • Toggle auto-refresh in the header"
@@ -274,13 +471,13 @@ echo -e "  ${YELLOW}    --master spark://spark-master:7077 \\${NC}"
 echo -e "  ${YELLOW}    /opt/spark-apps/long_running_demo.py${NC}"
 
 echo -e "\n${CYAN}View Logs:${NC}"
-echo -e "  ${YELLOW}docker-compose -f docker-compose.monitoring.yml logs -f${NC}"
+echo -e "  ${YELLOW}$DOCKER_COMPOSE_CMD -f docker-compose.monitoring.yml logs -f${NC}"
 
 echo -e "\n${CYAN}Stop Services:${NC}"
-echo -e "  ${YELLOW}docker-compose -f docker-compose.monitoring.yml down${NC}"
+echo -e "  ${YELLOW}$DOCKER_COMPOSE_CMD -f docker-compose.monitoring.yml down${NC}"
 
 echo -e "\n${CYAN}Restart Services:${NC}"
-echo -e "  ${YELLOW}docker-compose -f docker-compose.monitoring.yml restart${NC}"
+echo -e "  ${YELLOW}$DOCKER_COMPOSE_CMD -f docker-compose.monitoring.yml restart${NC}"
 
 # Final success message
 print_header "🎉 SUCCESS! Monitoring Dashboard is Ready!"
@@ -291,4 +488,4 @@ print_info "Press Ctrl+C to view this script's log, or close this window"
 
 # Keep script running to show any errors
 echo -e "\n${BLUE}Monitoring logs (Ctrl+C to exit)...${NC}\n"
-docker-compose -f docker-compose.monitoring.yml logs -f
+$DOCKER_COMPOSE_CMD -f docker-compose.monitoring.yml logs -f

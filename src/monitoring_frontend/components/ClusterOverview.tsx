@@ -35,11 +35,11 @@ export default function ClusterOverview({ refreshInterval }: Props) {
     )
   }
 
-  const workers = cluster.workers || 0
+  const workers = cluster.aliveworkers || 0
   const cores = cluster.cores || 0
-  const coresUsed = cluster.coresUsed || 0
+  const coresUsed = cluster.coresused || 0
   const memory = cluster.memory || 0
-  const memoryUsed = cluster.memoryUsed || 0
+  const memoryUsed = cluster.memoryused || 0
   const activeApps = cluster.activeapps?.length || 0
 
   return (

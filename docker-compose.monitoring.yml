@@ -138,9 +138,14 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - NEXT_PUBLIC_SPARK_MASTER_URL=http://spark-master:9080
-      - NEXT_PUBLIC_SPARK_APP_URL=http://spark-master:4040
-      - NEXT_PUBLIC_PROMETHEUS_URL=http://prometheus:9090
+      # Internal URLs for server-side API routes (used by Next.js API routes)
+      - SPARK_MASTER_INTERNAL_URL=http://spark-master:9080
+      - SPARK_APP_INTERNAL_URL=http://spark-master:4040
+      - PROMETHEUS_INTERNAL_URL=http://prometheus:9090
+      # Public URLs (not used anymore due to CORS, but kept for reference)
+      - NEXT_PUBLIC_SPARK_MASTER_URL=http://localhost:9080
+      - NEXT_PUBLIC_SPARK_APP_URL=http://localhost:4040
+      - NEXT_PUBLIC_PROMETHEUS_URL=http://localhost:9090
     networks:
       - spark-network
     depends_on:

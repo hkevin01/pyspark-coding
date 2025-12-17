@@ -31,8 +31,8 @@ export default function MetricsChart({ refreshInterval }: Props) {
       
       const newData: MetricData = {
         timestamp,
-        cpuUsage: cluster.cores > 0 ? Math.round((cluster.coresUsed / cluster.cores) * 100) : 0,
-        memoryUsage: cluster.memory > 0 ? Math.round((cluster.memoryUsed / cluster.memory) * 100) : 0,
+        cpuUsage: cluster.cores > 0 ? Math.round((cluster.coresused / cluster.cores) * 100) : 0,
+        memoryUsage: cluster.memory > 0 ? Math.round((cluster.memoryused / cluster.memory) * 100) : 0,
         activeApps: cluster.activeapps?.length || 0,
       }
 
