@@ -82,13 +82,15 @@ print_header "🚀 PySpark Monitoring Dashboard Launch Script"
 echo -e "${CYAN}This script will perform the following checks and setup:${NC}"
 echo -e "  1. ✓ Prerequisites (Docker, Docker Compose, Node.js, npm, Chrome)"
 echo -e "  2. ✓ File structure verification"
-echo -e "  3. ✓ Existing Spark cluster detection and cleanup"
-echo -e "  4. ✓ Port conflict resolution"
-echo -e "  5. ✓ Next.js configuration validation"
-echo -e "  6. ✓ npm dependencies installation"
-echo -e "  7. ✓ Docker images availability"
-echo -e "  8. ✓ Service startup and health checks"
-echo -e "  9. ✓ Browser launch"
+echo -e "  3. ✓ CORS & React Error validation (Python)"
+echo -e "  4. ✓ Existing Spark cluster detection and cleanup"
+echo -e "  5. ✓ Port conflict resolution"
+echo -e "  6. ✓ Next.js configuration validation"
+echo -e "  7. ✓ npm dependencies installation"
+echo -e "  8. ✓ Docker images availability"
+echo -e "  9. ✓ Service startup and health checks"
+echo -e " 10. ✓ Post-launch API verification"
+echo -e " 11. ✓ Browser launch"
 echo ""
 
 # Step 1: Check prerequisites
@@ -184,8 +186,62 @@ for file in "${REQUIRED_FILES[@]}"; do
     fi
 done
 
-# Step 3: Check for existing Spark clusters
-print_header "🔍 Step 3: Checking for Existing Spark Clusters"
+# Step 3: CORS & React Error Validation
+print_header "🔬 Step 3: CORS & React Error Validation"
+
+print_step "Running comprehensive code validation..."
+VALIDATION_SCRIPT="$FRONTEND_DIR/scripts/validate_monitoring.py"
+
+if [ -f "$VALIDATION_SCRIPT" ]; then
+    print_info "Checking for CORS issues, React Error #31 risks, and configuration problems..."
+    
+    # Run the Python validation script
+    if python3 "$VALIDATION_SCRIPT"; then
+        print_success "All validation checks passed!"
+    else
+        print_error "Validation failed! Please fix the errors above before launching."
+        print_info "Common issues:"
+        print_info "  - CORS: API calls should use /api/spark/ proxy routes, not direct localhost URLs"
+        print_info "  - React Error #31: TypeScript interfaces must use lowercase property names (coresused, not coresUsed)"
+        print_info "  - Docker: Ensure docker-compose.monitoring.yml has internal URL environment variables"
+        exit 1
+    fi
+else
+    print_warning "Validation script not found: $VALIDATION_SCRIPT"
+    print_info "Skipping Python validation - proceeding with basic checks..."
+    
+    # Fallback: Basic inline checks
+    print_step "Running basic CORS checks..."
+    
+    # Check if sparkApi.ts uses proxy routes
+    if grep -q "/api/spark/" "$FRONTEND_DIR/lib/sparkApi.ts" 2>/dev/null; then
+        print_success "sparkApi.ts uses API proxy routes (CORS safe)"
+    else
+        print_error "sparkApi.ts may not use API proxy routes - CORS errors likely!"
+        exit 1
+    fi
+    
+    # Check for React Error #31 - workers should be array type
+    if grep -q "workers.*:.*SparkWorker\[\]" "$FRONTEND_DIR/lib/sparkApi.ts" 2>/dev/null; then
+        print_success "ClusterStatus.workers is correctly typed as SparkWorker[]"
+    elif grep -q "workers.*:.*number" "$FRONTEND_DIR/lib/sparkApi.ts" 2>/dev/null; then
+        print_error "ClusterStatus.workers typed as 'number' - will cause React Error #31!"
+        print_info "The Spark API returns workers as an array, not a number."
+        exit 1
+    fi
+    
+    # Check for lowercase property names
+    if grep -q "coresused" "$FRONTEND_DIR/lib/sparkApi.ts" 2>/dev/null; then
+        print_success "Using correct lowercase property names (coresused)"
+    fi
+    if grep -q "coresUsed.*:" "$FRONTEND_DIR/lib/sparkApi.ts" 2>/dev/null; then
+        print_error "Using incorrect camelCase property names (coresUsed) - Spark API uses lowercase!"
+        exit 1
+    fi
+fi
+
+# Step 4: Check for existing Spark clusters
+print_header "🔍 Step 4: Checking for Existing Spark Clusters"
 
 # Check if old spark cluster is running
 OLD_CLUSTER_RUNNING=0
@@ -219,8 +275,8 @@ if [ $OLD_CLUSTER_RUNNING -eq 1 ]; then
     sleep 2
 fi
 
-# Step 4: Check port availability
-print_header "🔌 Step 4: Checking Port Availability"
+# Step 5: Check port availability
+print_header "🔌 Step 5: Checking Port Availability"
 
 PORTS=(3000 9080 9090 8081 8082 8083 4040 7077)
 PORT_NAMES=("Dashboard" "Spark Master" "Prometheus" "Worker 1" "Worker 2" "Worker 3" "App UI" "Spark Cluster")
@@ -262,8 +318,8 @@ if [ $CONFLICTS -eq 1 ]; then
     print_success "All ports are now available"
 fi
 
-# Step 5: Verify Next.js configuration
-print_header "📝 Step 5: Verifying Next.js Configuration"
+# Step 6: Verify Next.js configuration
+print_header "📝 Step 6: Verifying Next.js Configuration"
 
 print_step "Checking next.config.js for standalone output..."
 if grep -q "output.*:.*['\"]standalone['\"]" "$FRONTEND_DIR/next.config.js"; then
@@ -285,8 +341,8 @@ else
     fi
 fi
 
-# Step 6: Install npm dependencies
-print_header "📦 Step 6: Installing npm Dependencies"
+# Step 7: Install npm dependencies
+print_header "📦 Step 7: Installing npm Dependencies"
 
 cd "$FRONTEND_DIR"
 if [ ! -d "node_modules" ]; then
@@ -309,8 +365,8 @@ else
     print_success "No npm audit available or no vulnerabilities found"
 fi
 
-# Step 7: Check Docker images
-print_header "🐋 Step 7: Checking Docker Images"
+# Step 8: Check Docker images
+print_header "🐋 Step 8: Checking Docker Images"
 
 print_step "Checking for required Docker images..."
 IMAGES_TO_CHECK=("apache/spark:3.5.0" "prom/prometheus:latest")
@@ -337,8 +393,8 @@ else
     print_info "Dashboard image will be built from source (~2 minutes)"
 fi
 
-# Step 8: Start Docker services
-print_header "🐳 Step 8: Starting Docker Services"
+# Step 9: Start Docker services
+print_header "🐳 Step 9: Starting Docker Services"
 
 cd "$PROJECT_ROOT"
 print_step "Starting Spark cluster, Prometheus, and monitoring dashboard..."
@@ -372,8 +428,8 @@ if [ $FAILED_CONTAINERS -eq 1 ]; then
     exit 1
 fi
 
-# Step 9: Wait for services to be ready
-print_header "⏳ Step 9: Waiting for Services to Initialize"
+# Step 10: Wait for services to be ready
+print_header "⏳ Step 10: Waiting for Services to Initialize"
 
 wait_for_service "http://localhost:9080" "Spark Master" || {
     print_error "Spark Master failed to respond"
@@ -396,8 +452,8 @@ wait_for_service "http://localhost:3000" "Monitoring Dashboard" || {
     exit 1
 }
 
-# Step 10: Verify services
-print_header "✅ Step 10: Verifying Services"
+# Step 11: Verify services
+print_header "✅ Step 11: Verifying Services"
 
 print_step "Checking Spark Master..."
 if curl -s http://localhost:9080 | grep -q "Spark Master"; then
@@ -429,8 +485,61 @@ else
     print_warning "Dashboard may not be fully initialized"
 fi
 
-# Step 11: Display service URLs
-print_header "🌐 Step 11: Service URLs"
+# Step 11.5: Verify API proxy routes (CORS fix verification)
+print_header "🔗 Step 11.5: Verifying API Proxy Routes (CORS Fix)"
+
+print_step "Testing API proxy route: /api/spark/cluster..."
+API_RESPONSE=$(curl -s http://localhost:3000/api/spark/cluster 2>/dev/null)
+if echo "$API_RESPONSE" | grep -q "aliveworkers"; then
+    WORKER_COUNT=$(echo "$API_RESPONSE" | python3 -c "import sys, json; print(json.load(sys.stdin).get('aliveworkers', 0))" 2>/dev/null || echo "0")
+    print_success "API proxy working! Found $WORKER_COUNT workers via proxy"
+elif echo "$API_RESPONSE" | grep -q "workers"; then
+    print_success "API proxy route responding (workers array detected)"
+else
+    print_warning "API proxy may not be working correctly"
+    print_info "Response preview: ${API_RESPONSE:0:100}..."
+fi
+
+print_step "Testing API proxy route: /api/spark/applications..."
+APP_RESPONSE=$(curl -s http://localhost:3000/api/spark/applications 2>/dev/null)
+if [ "$APP_RESPONSE" = "[]" ] || echo "$APP_RESPONSE" | grep -q "id"; then
+    print_success "Applications API proxy working!"
+else
+    print_warning "Applications API proxy may have issues"
+fi
+
+# Check for CORS errors by testing direct API (should fail from browser context)
+print_step "Verifying CORS prevention setup..."
+if curl -s http://localhost:9080/json/ | grep -q "url"; then
+    print_success "Direct Spark API accessible (server-side proxying will work)"
+else
+    print_warning "Direct Spark API not accessible"
+fi
+
+# Verify React Error #31 won't occur by checking API response format
+print_step "Validating API response format (React Error #31 prevention)..."
+if echo "$API_RESPONSE" | python3 -c "
+import sys, json
+try:
+    data = json.load(sys.stdin)
+    workers = data.get('workers', [])
+    if isinstance(workers, list):
+        print('OK')
+        sys.exit(0)
+    else:
+        print('ERROR: workers is not an array')
+        sys.exit(1)
+except:
+    print('ERROR: Invalid JSON')
+    sys.exit(1)
+" 2>/dev/null | grep -q "OK"; then
+    print_success "API returns workers as array (React Error #31 prevented)"
+else
+    print_warning "Could not verify workers array format"
+fi
+
+# Step 12: Display service URLs
+print_header "🌐 Step 12: Service URLs"
 
 echo -e "${GREEN}Dashboard:${NC}        http://localhost:3000"
 echo -e "${GREEN}Spark Master UI:${NC}  http://localhost:9080"
@@ -440,8 +549,8 @@ echo -e "${GREEN}Worker 2 UI:${NC}      http://localhost:8082"
 echo -e "${GREEN}Worker 3 UI:${NC}      http://localhost:8083"
 echo -e "${GREEN}App UI:${NC}           http://localhost:4040 ${YELLOW}(when job running)${NC}"
 
-# Step 12: Launch Chrome
-print_header "🌍 Step 12: Launching Dashboard in Chrome"
+# Step 13: Launch Chrome
+print_header "🌍 Step 13: Launching Dashboard in Chrome"
 
 print_step "Opening http://localhost:3000 in Chrome..."
 sleep 2
@@ -454,8 +563,8 @@ else
     print_success "Dashboard opened in Chrome"
 fi
 
-# Step 13: Show helpful tips
-print_header "💡 Step 13: Quick Tips & Usage"
+# Step 14: Show helpful tips
+print_header "💡 Step 14: Quick Tips & Usage"
 
 echo -e "${CYAN}Dashboard Features:${NC}"
 echo -e "  • Toggle auto-refresh in the header"
