@@ -164,6 +164,8 @@ def validate_typescript_interfaces(result: ValidationResult):
     }
 
     # Check for incorrect camelCase property names that would cause React Error #31
+    # NOTE: SparkExecutor uses camelCase (memoryUsed, diskUsed) because the Spark
+    # Executor REST API actually returns camelCase, unlike the Master REST API
     incorrect_props = {
         "ClusterStatus": ["coresUsed", "memoryUsed"],
         "SparkWorker": ["coresUsed", "coresFree", "memoryUsed", "memoryFree"],
@@ -181,13 +183,22 @@ def validate_typescript_interfaces(result: ValidationResult):
                 )
 
     # Check for incorrect camelCase that would break
+    # We need to check within specific interface definitions only
     for interface, props in incorrect_props.items():
         for prop in props:
-            pattern = rf"\b{prop}\b\s*:"
-            if re.search(pattern, content):
-                result.add_error(
-                    f"{interface}.{prop} uses camelCase - Spark API returns lowercase! (React Error #31)"
-                )
+            # Extract the interface definition to check within it specifically
+            # Pattern matches: export interface InterfaceName { ... }
+            interface_pattern = rf"export\s+interface\s+{interface}\s*\{{[^}}]*\}}"
+            interface_match = re.search(interface_pattern, content, re.DOTALL)
+
+            if interface_match:
+                interface_content = interface_match.group(0)
+                prop_pattern = rf"\b{prop}\b\s*:"
+                if re.search(prop_pattern, interface_content):
+                    result.add_error(
+                        f"{interface}.{prop} uses camelCase - Spark API returns lowercase! (React Error #31)"
+                    )
+            # If interface not found, skip silently (already warned above)
 
 
 def validate_component_property_usage(result: ValidationResult):
@@ -473,7 +484,7 @@ def validate_tabbed_interface(result: ValidationResult):
     components_dir = FRONTEND_DIR / "components"
     required_components = [
         "TabNavigation.tsx",
-        "RunJobs.tsx",
+        "UnifiedMonitor.tsx",
         "LogsViewer.tsx",
         "SettingsPanel.tsx",
     ]
@@ -502,7 +513,12 @@ def validate_tabbed_interface(result: ValidationResult):
     index_path = FRONTEND_DIR / "pages" / "index.tsx"
     if index_path.exists():
         content = index_path.read_text()
-        imports_to_check = ["TabNavigation", "RunJobs", "LogsViewer", "SettingsPanel"]
+        imports_to_check = [
+            "TabNavigation",
+            "UnifiedMonitor",
+            "LogsViewer",
+            "SettingsPanel",
+        ]
         for import_name in imports_to_check:
             if (
                 f"import {import_name}" in content
