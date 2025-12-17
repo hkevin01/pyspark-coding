@@ -110,8 +110,26 @@ docker-compose up -d --scale spark-worker-1=1 --scale spark-worker-2=1 --scale s
 
 ## 📊 Monitoring
 
+### 🔴 Real-Time Monitor (NEW!)
+```bash
+# Terminal-based live monitor (auto-refreshes every 2s)
+./apps/monitor_job.sh
+```
+
+**See apps/MONITOR_README.md for full guide!**
+
+### 🔄 Enable Auto-Refresh in Web UI
+```bash
+# Method 1: Click "Enable auto refresh" in UI (top right)
+
+# Method 2: Add URL parameter
+http://localhost:9080/?showConsoleProgress=true
+```
+
+**See ENABLE_AUTO_REFRESH.md for 5 different methods!**
+
 ### View Registered Workers
-Open http://localhost:8080 → Shows all workers with:
+Open http://localhost:9080 → Shows all workers with:
 - Cores available
 - Memory allocated
 - Running applications
