@@ -1,10 +1,23 @@
 import { useEffect, useState } from 'react'
 import useSWR from 'swr'
 import { fetchClusterStatus, ClusterStatus, formatBytes } from '../lib/sparkApi'
-import { Server, Cpu, HardDrive, Activity } from 'lucide-react'
+import { Server, Cpu, HardDrive, Activity, Info } from 'lucide-react'
 
 interface Props {
   refreshInterval: number | null
+}
+
+// Tooltip component for metric explanations
+function MetricTooltip({ text }: { text: string }) {
+  return (
+    <div className="group relative inline-block ml-1">
+      <Info className="h-3 w-3 text-gray-500 hover:text-gray-300 cursor-help" />
+      <div className="absolute z-50 hidden group-hover:block w-48 p-2 text-xs bg-gray-900 border border-gray-600 rounded-lg shadow-xl -translate-x-1/2 left-1/2 mt-1">
+        <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-gray-900 border-l border-t border-gray-600 rotate-45"></div>
+        {text}
+      </div>
+    </div>
+  )
 }
 
 export default function ClusterOverview({ refreshInterval }: Props) {
@@ -44,20 +57,26 @@ export default function ClusterOverview({ refreshInterval }: Props) {
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-      {/* Workers Card */}
+      {/* Workers Card - Shows number of active compute nodes */}
       <div className="bg-gradient-to-br from-blue-900/50 to-blue-800/30 backdrop-blur-sm border border-blue-700/50 rounded-lg p-6 hover:scale-105 transition-transform">
         <div className="flex items-center justify-between mb-2">
-          <h3 className="text-sm font-medium text-blue-300">Workers</h3>
+          <h3 className="text-sm font-medium text-blue-300 flex items-center">
+            Workers
+            <MetricTooltip text="Worker nodes execute tasks. Each worker contributes CPU and memory to the cluster." />
+          </h3>
           <Server className="h-5 w-5 text-blue-400" />
         </div>
         <p className="text-3xl font-bold text-white">{workers}</p>
-        <p className="text-xs text-blue-300 mt-1">Active nodes</p>
+        <p className="text-xs text-blue-300 mt-1">Active compute nodes</p>
       </div>
 
-      {/* CPU Card */}
+      {/* CPU Card - Shows core allocation and usage */}
       <div className="bg-gradient-to-br from-green-900/50 to-green-800/30 backdrop-blur-sm border border-green-700/50 rounded-lg p-6 hover:scale-105 transition-transform">
         <div className="flex items-center justify-between mb-2">
-          <h3 className="text-sm font-medium text-green-300">CPU Cores</h3>
+          <h3 className="text-sm font-medium text-green-300 flex items-center">
+            CPU Cores
+            <MetricTooltip text="Total CPU cores available. Tasks run in parallel across cores. More cores = more parallelism." />
+          </h3>
           <Cpu className="h-5 w-5 text-green-400" />
         </div>
         <p className="text-3xl font-bold text-white">{coresUsed} / {cores}</p>
@@ -72,10 +91,13 @@ export default function ClusterOverview({ refreshInterval }: Props) {
         </p>
       </div>
 
-      {/* Memory Card */}
+      {/* Memory Card - Shows RAM allocation and usage */}
       <div className="bg-gradient-to-br from-purple-900/50 to-purple-800/30 backdrop-blur-sm border border-purple-700/50 rounded-lg p-6 hover:scale-105 transition-transform">
         <div className="flex items-center justify-between mb-2">
-          <h3 className="text-sm font-medium text-purple-300">Memory</h3>
+          <h3 className="text-sm font-medium text-purple-300 flex items-center">
+            Memory
+            <MetricTooltip text="Executor memory for computations and caching. High memory enables larger datasets and better caching." />
+          </h3>
           <HardDrive className="h-5 w-5 text-purple-400" />
         </div>
         <p className="text-3xl font-bold text-white">{formatBytes(memoryUsed * 1024 * 1024)}</p>
@@ -90,15 +112,18 @@ export default function ClusterOverview({ refreshInterval }: Props) {
         </p>
       </div>
 
-      {/* Active Apps Card */}
+      {/* Active Apps Card - Shows running applications */}
       <div className="bg-gradient-to-br from-orange-900/50 to-orange-800/30 backdrop-blur-sm border border-orange-700/50 rounded-lg p-6 hover:scale-105 transition-transform">
         <div className="flex items-center justify-between mb-2">
-          <h3 className="text-sm font-medium text-orange-300">Active Apps</h3>
+          <h3 className="text-sm font-medium text-orange-300 flex items-center">
+            Active Apps
+            <MetricTooltip text="Spark applications currently running. Each app gets dedicated executors from the cluster." />
+          </h3>
           <Activity className={`h-5 w-5 text-orange-400 ${activeApps > 0 ? 'animate-pulse' : ''}`} />
         </div>
         <p className="text-3xl font-bold text-white">{activeApps}</p>
         <p className="text-xs text-orange-300 mt-1">
-          {activeApps === 0 ? 'No applications running' : `${activeApps} running`}
+          {activeApps === 0 ? 'Cluster idle' : `${activeApps} running`}
         </p>
       </div>
     </div>
