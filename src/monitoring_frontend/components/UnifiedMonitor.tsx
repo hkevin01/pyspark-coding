@@ -69,8 +69,12 @@ interface SparkStage {
   numFailedTasks: number
   inputBytes: number
   outputBytes: number
+  inputRecords: number
+  outputRecords: number
   shuffleReadBytes: number
   shuffleWriteBytes: number
+  shuffleReadRecords: number
+  shuffleWriteRecords: number
   executorRunTime: number
   details?: string
 }
@@ -308,6 +312,9 @@ export default function UnifiedMonitor({ refreshInterval }: Props) {
   const [executionSteps, setExecutionSteps] = useState<ExecutionStep[]>([])
   const [jobOutput, setJobOutput] = useState<string[]>([])
   
+  // Modal state for detailed popups
+  const [activeModal, setActiveModal] = useState<'dag' | 'stages' | 'tasks' | null>(null)
+  
   const fetchExecutionDetails = useCallback(async () => {
     try {
       if (!applications?.length) return
@@ -420,6 +427,7 @@ export default function UnifiedMonitor({ refreshInterval }: Props) {
   const totalTasks = jobs.reduce((sum, j) => sum + (j.numTasks || 0), 0)
   const completedTasks = jobs.reduce((sum, j) => sum + (j.numCompletedTasks || 0), 0)
   const activeTasks = jobs.reduce((sum, j) => sum + (j.numActiveTasks || 0), 0)
+  const failedTasks = jobs.reduce((sum, j) => sum + (j.numFailedTasks || 0), 0)
   const totalShuffleRead = stages.reduce((sum, s) => sum + (s.shuffleReadBytes || 0), 0)
   const totalShuffleWrite = stages.reduce((sum, s) => sum + (s.shuffleWriteBytes || 0), 0)
 
@@ -549,6 +557,338 @@ export default function UnifiedMonitor({ refreshInterval }: Props) {
       </div>
 
       {/* ═══════════════════════════════════════════════════════════════════════════ */}
+      {/* DETAIL MODAL - Popup for DAG, Stages, Tasks */}
+      {/* ═══════════════════════════════════════════════════════════════════════════ */}
+      {activeModal && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setActiveModal(null)}>
+          <div className="bg-gray-900 border border-gray-700 rounded-xl max-w-4xl w-full max-h-[85vh] overflow-hidden shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            {/* Modal Header */}
+            <div className={`p-4 border-b border-gray-700 flex items-center justify-between ${
+              activeModal === 'dag' ? 'bg-purple-900/30' : activeModal === 'stages' ? 'bg-blue-900/30' : 'bg-green-900/30'
+            }`}>
+              <div className="flex items-center">
+                {activeModal === 'dag' && <GitBranch className="h-6 w-6 text-purple-400 mr-3" />}
+                {activeModal === 'stages' && <Layers className="h-6 w-6 text-blue-400 mr-3" />}
+                {activeModal === 'tasks' && <Grid3X3 className="h-6 w-6 text-green-400 mr-3" />}
+                <div>
+                  <h2 className="text-xl font-bold text-white">
+                    {activeModal === 'dag' && '📊 DAG Execution Plan'}
+                    {activeModal === 'stages' && '📋 Stage Scheduling Details'}
+                    {activeModal === 'tasks' && '⚡ Task Execution Details'}
+                  </h2>
+                  <p className="text-sm text-gray-400">
+                    {activeModal === 'dag' && 'How Spark plans your job execution'}
+                    {activeModal === 'stages' && 'Stages created from DAG shuffle boundaries'}
+                    {activeModal === 'tasks' && 'Individual tasks running on partitions'}
+                  </p>
+                </div>
+              </div>
+              <button onClick={() => setActiveModal(null)} className="text-gray-400 hover:text-white p-2 hover:bg-gray-800 rounded-lg">
+                <XCircle className="h-6 w-6" />
+              </button>
+            </div>
+            
+            {/* Modal Content */}
+            <div className="p-6 overflow-y-auto max-h-[calc(85vh-80px)]">
+              {/* DAG Modal Content */}
+              {activeModal === 'dag' && (
+                <div className="space-y-6">
+                  <div className="bg-purple-500/10 border border-purple-500/30 rounded-lg p-4">
+                    <h3 className="text-purple-300 font-bold mb-3 flex items-center">
+                      <Info className="h-5 w-5 mr-2" />
+                      What is the DAG?
+                    </h3>
+                    <p className="text-gray-300 text-sm mb-3">
+                      The <strong>Directed Acyclic Graph (DAG)</strong> is Spark&apos;s internal representation of your job. 
+                      When you write transformations like <code className="bg-gray-800 px-1 rounded">filter()</code>, 
+                      <code className="bg-gray-800 px-1 rounded">map()</code>, <code className="bg-gray-800 px-1 rounded">groupBy()</code>, 
+                      Spark doesn&apos;t execute them immediately. Instead, it builds a DAG of operations.
+                    </p>
+                    <div className="grid grid-cols-2 gap-4 mt-4">
+                      <div className="bg-gray-800/50 rounded p-3">
+                        <p className="text-purple-300 font-medium text-sm mb-2">🔄 Lazy Evaluation</p>
+                        <p className="text-gray-400 text-xs">Transformations are recorded but not executed until an action (like <code className="bg-gray-700 px-1 rounded">collect()</code>) is called.</p>
+                      </div>
+                      <div className="bg-gray-800/50 rounded p-3">
+                        <p className="text-purple-300 font-medium text-sm mb-2">🎯 Optimization</p>
+                        <p className="text-gray-400 text-xs">Catalyst optimizer rewrites your plan for better performance (predicate pushdown, projection pruning).</p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Visual DAG */}
+                  <div className="bg-gray-800/50 rounded-lg p-4">
+                    <h4 className="text-white font-medium mb-4">Visual Execution Plan</h4>
+                    <div className="flex flex-col items-center space-y-2">
+                      <div className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium">📂 Data Source (Parquet/CSV/etc)</div>
+                      <ArrowDown className="h-5 w-5 text-gray-500" />
+                      <div className="bg-green-600/80 text-white px-4 py-2 rounded-lg text-sm">🔍 Filter → Map → Select</div>
+                      <p className="text-xs text-gray-500">Narrow transformations (no shuffle)</p>
+                      <ArrowDown className="h-5 w-5 text-gray-500" />
+                      <div className="bg-orange-600 text-white px-4 py-2 rounded-lg text-sm flex items-center">
+                        <Shuffle className="h-4 w-4 mr-2" />
+                        GroupBy / Join (Shuffle!)
+                      </div>
+                      <p className="text-xs text-yellow-400">⚠️ Stage boundary - data moves between nodes</p>
+                      <ArrowDown className="h-5 w-5 text-gray-500" />
+                      <div className="bg-green-600/80 text-white px-4 py-2 rounded-lg text-sm">📊 Aggregate → Sort</div>
+                      <ArrowDown className="h-5 w-5 text-gray-500" />
+                      <div className="bg-purple-600 text-white px-4 py-2 rounded-lg text-sm font-medium">💾 Write Output / Collect</div>
+                    </div>
+                  </div>
+                  
+                  {/* Live Jobs from current run */}
+                  {jobs.length > 0 && (
+                    <div className="bg-gray-800/50 rounded-lg p-4">
+                      <h4 className="text-white font-medium mb-3">Current Job DAGs ({jobs.length} jobs)</h4>
+                      <div className="space-y-2">
+                        {jobs.map(job => (
+                          <div key={job.jobId} className="flex items-center justify-between bg-gray-900/50 rounded p-3">
+                            <div className="flex items-center">
+                              <span className={`w-3 h-3 rounded-full mr-3 ${job.status === 'RUNNING' ? 'bg-blue-500 animate-pulse' : job.status === 'SUCCEEDED' ? 'bg-green-500' : 'bg-red-500'}`} />
+                              <div>
+                                <p className="text-white text-sm font-medium">Job {job.jobId}</p>
+                                <p className="text-gray-400 text-xs">{job.name || 'Unnamed job'}</p>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-sm"><span className="text-green-400">{job.numCompletedTasks}</span>/<span className="text-gray-400">{job.numTasks}</span> tasks</p>
+                              <span className={`text-xs px-2 py-0.5 rounded ${job.status === 'RUNNING' ? 'bg-blue-500/20 text-blue-300' : job.status === 'SUCCEEDED' ? 'bg-green-500/20 text-green-300' : 'bg-red-500/20 text-red-300'}`}>{job.status}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4">
+                    <h4 className="text-yellow-300 font-medium mb-2">💡 Pro Tip: View DAG in Spark UI</h4>
+                    <p className="text-gray-300 text-sm">
+                      Visit <code className="bg-gray-800 px-2 py-0.5 rounded">http://localhost:4040</code> while a job is running to see the interactive DAG visualization. 
+                      Click on any stage to see the detailed execution plan with metrics.
+                    </p>
+                  </div>
+                </div>
+              )}
+              
+              {/* Stages Modal Content */}
+              {activeModal === 'stages' && (
+                <div className="space-y-6">
+                  <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
+                    <h3 className="text-blue-300 font-bold mb-3 flex items-center">
+                      <Layers className="h-5 w-5 mr-2" />
+                      How Stages Are Created
+                    </h3>
+                    <p className="text-gray-300 text-sm mb-3">
+                      Spark divides your DAG into <strong>Stages</strong> at shuffle boundaries. 
+                      Each stage contains tasks that can run in parallel without exchanging data.
+                    </p>
+                    <div className="grid grid-cols-3 gap-3 mt-4">
+                      <div className="bg-gray-800/50 rounded p-3 text-center">
+                        <p className="text-3xl mb-1">📥</p>
+                        <p className="text-blue-300 font-medium text-sm">Stage Start</p>
+                        <p className="text-gray-400 text-xs">Read from source or shuffle</p>
+                      </div>
+                      <div className="bg-gray-800/50 rounded p-3 text-center">
+                        <p className="text-3xl mb-1">⚡</p>
+                        <p className="text-green-300 font-medium text-sm">Parallel Tasks</p>
+                        <p className="text-gray-400 text-xs">1 task per partition</p>
+                      </div>
+                      <div className="bg-gray-800/50 rounded p-3 text-center">
+                        <p className="text-3xl mb-1">📤</p>
+                        <p className="text-orange-300 font-medium text-sm">Stage End</p>
+                        <p className="text-gray-400 text-xs">Shuffle write or output</p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Live Stages */}
+                  <div className="bg-gray-800/50 rounded-lg p-4">
+                    <h4 className="text-white font-medium mb-3">Current Stages ({stages.length})</h4>
+                    {stages.length > 0 ? (
+                      <div className="space-y-2 max-h-64 overflow-y-auto">
+                        {stages.map(stage => {
+                          const info = parseStageInfo(stage)
+                          return (
+                            <div key={`${stage.stageId}-${stage.attemptId}`} className="bg-gray-900/50 rounded-lg p-3">
+                              <div className="flex items-center justify-between mb-2">
+                                <div className="flex items-center">
+                                  <span className={`w-2 h-2 rounded-full mr-2 ${stage.status === 'ACTIVE' ? 'bg-blue-500 animate-pulse' : stage.status === 'COMPLETE' ? 'bg-green-500' : stage.status === 'PENDING' ? 'bg-yellow-500' : 'bg-red-500'}`} />
+                                  <span className="text-white font-medium text-sm">Stage {stage.stageId}: {info.operation}</span>
+                                </div>
+                                <span className={`text-xs px-2 py-0.5 rounded ${stage.status === 'ACTIVE' ? 'bg-blue-500/20 text-blue-300' : stage.status === 'COMPLETE' ? 'bg-green-500/20 text-green-300' : 'bg-yellow-500/20 text-yellow-300'}`}>{stage.status}</span>
+                              </div>
+                              <div className="grid grid-cols-4 gap-2 text-xs">
+                                <div className="bg-gray-800/50 rounded p-2">
+                                  <p className="text-gray-400">Tasks</p>
+                                  <p className="text-white font-medium">{stage.numCompleteTasks}/{stage.numTasks}</p>
+                                </div>
+                                <div className="bg-gray-800/50 rounded p-2">
+                                  <p className="text-gray-400">Input</p>
+                                  <p className="text-cyan-300 font-medium">{formatBytes(stage.inputBytes || 0)}</p>
+                                </div>
+                                <div className="bg-gray-800/50 rounded p-2">
+                                  <p className="text-gray-400">Output</p>
+                                  <p className="text-pink-300 font-medium">{formatBytes(stage.outputBytes || 0)}</p>
+                                </div>
+                                <div className="bg-gray-800/50 rounded p-2">
+                                  <p className="text-gray-400">Shuffle</p>
+                                  <p className="text-yellow-300 font-medium">{formatBytes((stage.shuffleReadBytes || 0) + (stage.shuffleWriteBytes || 0))}</p>
+                                </div>
+                              </div>
+                              {info.location && (
+                                <p className="text-xs text-gray-500 mt-2 font-mono">
+                                  📍 {info.location}{info.lineNum ? `:${info.lineNum}` : ''}
+                                </p>
+                              )}
+                            </div>
+                          )
+                        })}
+                      </div>
+                    ) : (
+                      <p className="text-gray-400 text-sm text-center py-4">No stages yet - run a job to see stages</p>
+                    )}
+                  </div>
+                  
+                  <div className="bg-purple-500/10 border border-purple-500/30 rounded-lg p-4">
+                    <h4 className="text-purple-300 font-medium mb-2">🔀 What Causes a New Stage?</h4>
+                    <div className="grid grid-cols-2 gap-3 text-sm">
+                      <div>
+                        <p className="text-gray-300 font-medium mb-1">Wide Transformations (New Stage):</p>
+                        <ul className="text-gray-400 text-xs space-y-1">
+                          <li>• <code className="bg-gray-800 px-1 rounded">groupBy()</code>, <code className="bg-gray-800 px-1 rounded">groupByKey()</code></li>
+                          <li>• <code className="bg-gray-800 px-1 rounded">reduceByKey()</code>, <code className="bg-gray-800 px-1 rounded">aggregateByKey()</code></li>
+                          <li>• <code className="bg-gray-800 px-1 rounded">join()</code>, <code className="bg-gray-800 px-1 rounded">cogroup()</code></li>
+                          <li>• <code className="bg-gray-800 px-1 rounded">repartition()</code>, <code className="bg-gray-800 px-1 rounded">coalesce()</code></li>
+                        </ul>
+                      </div>
+                      <div>
+                        <p className="text-gray-300 font-medium mb-1">Narrow Transformations (Same Stage):</p>
+                        <ul className="text-gray-400 text-xs space-y-1">
+                          <li>• <code className="bg-gray-800 px-1 rounded">map()</code>, <code className="bg-gray-800 px-1 rounded">flatMap()</code></li>
+                          <li>• <code className="bg-gray-800 px-1 rounded">filter()</code>, <code className="bg-gray-800 px-1 rounded">select()</code></li>
+                          <li>• <code className="bg-gray-800 px-1 rounded">withColumn()</code>, <code className="bg-gray-800 px-1 rounded">drop()</code></li>
+                          <li>• <code className="bg-gray-800 px-1 rounded">union()</code> (if same partitioner)</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              {/* Tasks Modal Content */}
+              {activeModal === 'tasks' && (
+                <div className="space-y-6">
+                  <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-4">
+                    <h3 className="text-green-300 font-bold mb-3 flex items-center">
+                      <Box className="h-5 w-5 mr-2" />
+                      Task Execution Model
+                    </h3>
+                    <p className="text-gray-300 text-sm mb-3">
+                      A <strong>Task</strong> is the smallest unit of work - it processes exactly one partition of data on one executor core.
+                      Tasks are the actual computation that runs on your cluster.
+                    </p>
+                    <div className="flex items-center justify-center gap-4 mt-4 p-4 bg-gray-800/50 rounded-lg">
+                      <div className="text-center">
+                        <Database className="h-8 w-8 text-cyan-400 mx-auto mb-1" />
+                        <p className="text-xs text-gray-400">Partition</p>
+                      </div>
+                      <ArrowRight className="h-5 w-5 text-gray-500" />
+                      <div className="text-center">
+                        <Cpu className="h-8 w-8 text-green-400 mx-auto mb-1" />
+                        <p className="text-xs text-gray-400">Executor Core</p>
+                      </div>
+                      <ArrowRight className="h-5 w-5 text-gray-500" />
+                      <div className="text-center">
+                        <Box className="h-8 w-8 text-purple-400 mx-auto mb-1" />
+                        <p className="text-xs text-gray-400">Task Output</p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Live Task Stats */}
+                  <div className="bg-gray-800/50 rounded-lg p-4">
+                    <h4 className="text-white font-medium mb-3">Current Task Statistics</h4>
+                    <div className="grid grid-cols-4 gap-4">
+                      <div className="bg-gray-900/50 rounded-lg p-4 text-center">
+                        <p className="text-3xl font-bold text-white">{totalTasks}</p>
+                        <p className="text-gray-400 text-sm">Total Tasks</p>
+                      </div>
+                      <div className="bg-blue-500/10 rounded-lg p-4 text-center">
+                        <p className="text-3xl font-bold text-blue-400">{activeTasks}</p>
+                        <p className="text-gray-400 text-sm">Running</p>
+                      </div>
+                      <div className="bg-green-500/10 rounded-lg p-4 text-center">
+                        <p className="text-3xl font-bold text-green-400">{completedTasks}</p>
+                        <p className="text-gray-400 text-sm">Completed</p>
+                      </div>
+                      <div className="bg-red-500/10 rounded-lg p-4 text-center">
+                        <p className="text-3xl font-bold text-red-400">{failedTasks}</p>
+                        <p className="text-gray-400 text-sm">Failed</p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Executor Task Distribution */}
+                  {executors.filter(e => e.id !== 'driver').length > 0 && (
+                    <div className="bg-gray-800/50 rounded-lg p-4">
+                      <h4 className="text-white font-medium mb-3">Task Distribution by Executor</h4>
+                      <div className="space-y-2">
+                        {executors.filter(e => e.id !== 'driver').map(exec => (
+                          <div key={exec.id} className="flex items-center gap-3 bg-gray-900/50 rounded p-3">
+                            <div className="w-24 text-xs text-gray-400 font-mono truncate">Executor {exec.id}</div>
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-1">
+                                <div className="flex-1 h-3 bg-gray-700 rounded-full overflow-hidden">
+                                  <div className="h-full bg-green-500" style={{ width: `${exec.completedTasks > 0 ? (exec.completedTasks / (exec.completedTasks + exec.activeTasks + exec.failedTasks)) * 100 : 0}%` }} />
+                                </div>
+                                <span className="text-xs text-gray-400 w-16 text-right">{exec.completedTasks} done</span>
+                              </div>
+                            </div>
+                            <div className="text-right w-20">
+                              {exec.activeTasks > 0 && <span className="text-xs bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded">{exec.activeTasks} active</span>}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  <div className="bg-orange-500/10 border border-orange-500/30 rounded-lg p-4">
+                    <h4 className="text-orange-300 font-medium mb-2">🔧 Task Lifecycle</h4>
+                    <div className="flex items-center justify-between text-xs text-gray-300">
+                      <div className="text-center">
+                        <p className="bg-gray-700 rounded-full w-8 h-8 flex items-center justify-center mx-auto mb-1">1</p>
+                        <p>Scheduled</p>
+                      </div>
+                      <ArrowRight className="h-4 w-4 text-gray-600" />
+                      <div className="text-center">
+                        <p className="bg-blue-600 rounded-full w-8 h-8 flex items-center justify-center mx-auto mb-1">2</p>
+                        <p>Running</p>
+                      </div>
+                      <ArrowRight className="h-4 w-4 text-gray-600" />
+                      <div className="text-center">
+                        <p className="bg-yellow-600 rounded-full w-8 h-8 flex items-center justify-center mx-auto mb-1">3</p>
+                        <p>Shuffle</p>
+                      </div>
+                      <ArrowRight className="h-4 w-4 text-gray-600" />
+                      <div className="text-center">
+                        <p className="bg-green-600 rounded-full w-8 h-8 flex items-center justify-center mx-auto mb-1">4</p>
+                        <p>Completed</p>
+                      </div>
+                    </div>
+                    <p className="text-gray-400 text-xs mt-3">
+                      Failed tasks are automatically retried up to <code className="bg-gray-800 px-1 rounded">spark.task.maxFailures</code> times (default: 4).
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ═══════════════════════════════════════════════════════════════════════════ */}
       {/* EXECUTION FLOW - Shows real-time progress when job is running */}
       {/* ═══════════════════════════════════════════════════════════════════════════ */}
       {currentJobName && executionSteps.length > 0 && (
@@ -561,47 +901,69 @@ export default function UnifiedMonitor({ refreshInterval }: Props) {
             <button onClick={() => { setCurrentJobName(null); setExecutionSteps([]) }} className="text-gray-400 hover:text-white text-sm">Clear</button>
           </div>
           
-          {/* Step-by-step flow */}
+          {/* Step-by-step flow - Now clickable! */}
           <div className="relative">
             <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-gray-700"></div>
             <div className="space-y-3">
-              {executionSteps.map((step, idx) => (
-                <div key={step.step} className="flex items-start ml-0">
-                  <div className={`relative z-10 w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold mr-3 ${
-                    step.status === 'completed' ? 'bg-green-500 text-white' :
-                    step.status === 'active' ? 'bg-blue-500 text-white animate-pulse' :
-                    'bg-gray-700 text-gray-400'
-                  }`}>
-                    {step.status === 'completed' ? '✓' : step.step}
-                  </div>
-                  <div className="flex-1 bg-gray-800/50 rounded-lg p-3">
-                    <div className="flex items-center justify-between">
-                      <span className={`font-medium text-sm ${step.status === 'active' ? 'text-blue-300' : step.status === 'completed' ? 'text-green-300' : 'text-gray-400'}`}>
-                        {step.name}
-                      </span>
-                      {step.status === 'active' && <Loader2 className="h-4 w-4 text-blue-400 animate-spin" />}
-                      {step.status === 'completed' && <CheckCircle className="h-4 w-4 text-green-400" />}
+              {executionSteps.map((step) => {
+                // Determine if this step is clickable for more details
+                const isClickable = step.name.includes('DAG') || step.name.includes('Stage') || step.name.includes('Task')
+                const modalType = step.name.includes('DAG') ? 'dag' : step.name.includes('Stage') ? 'stages' : step.name.includes('Task') ? 'tasks' : null
+                
+                return (
+                  <div key={step.step} className="flex items-start ml-0">
+                    <div className={`relative z-10 w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold mr-3 ${
+                      step.status === 'completed' ? 'bg-green-500 text-white' :
+                      step.status === 'active' ? 'bg-blue-500 text-white animate-pulse' :
+                      'bg-gray-700 text-gray-400'
+                    }`}>
+                      {step.status === 'completed' ? '✓' : step.step}
                     </div>
-                    <p className="text-xs text-gray-400 mt-1">{step.description}</p>
+                    <div 
+                      className={`flex-1 bg-gray-800/50 rounded-lg p-3 transition-all ${
+                        isClickable ? 'cursor-pointer hover:bg-gray-700/50 hover:border-blue-500/50 border border-transparent' : ''
+                      }`}
+                      onClick={() => modalType && setActiveModal(modalType)}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center">
+                          <span className={`font-medium text-sm ${step.status === 'active' ? 'text-blue-300' : step.status === 'completed' ? 'text-green-300' : 'text-gray-400'}`}>
+                            {step.name}
+                          </span>
+                          {isClickable && (
+                            <span className="ml-2 text-xs bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded flex items-center">
+                              <Info className="h-3 w-3 mr-1" />
+                              Click for details
+                            </span>
+                          )}
+                        </div>
+                        {step.status === 'active' && <Loader2 className="h-4 w-4 text-blue-400 animate-spin" />}
+                        {step.status === 'completed' && <CheckCircle className="h-4 w-4 text-green-400" />}
+                      </div>
+                      <p className="text-xs text-gray-400 mt-1">{step.description}</p>
+                    </div>
                   </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           </div>
           
-          {/* Live Stats */}
+          {/* Live Stats - Now clickable too */}
           <div className="grid grid-cols-4 gap-3 mt-4 pt-4 border-t border-gray-700">
-            <div className="bg-gray-800/50 rounded p-2 text-center">
+            <div className="bg-gray-800/50 rounded p-2 text-center cursor-pointer hover:bg-gray-700/50 transition-colors" onClick={() => setActiveModal('dag')}>
               <p className="text-lg font-bold text-white">{jobs.length}</p>
               <p className="text-xs text-gray-400">Jobs</p>
+              <p className="text-xs text-blue-400 mt-1">View DAG →</p>
             </div>
-            <div className="bg-gray-800/50 rounded p-2 text-center">
+            <div className="bg-gray-800/50 rounded p-2 text-center cursor-pointer hover:bg-gray-700/50 transition-colors" onClick={() => setActiveModal('stages')}>
               <p className="text-lg font-bold text-white">{stages.length}</p>
               <p className="text-xs text-gray-400">Stages</p>
+              <p className="text-xs text-blue-400 mt-1">View Details →</p>
             </div>
-            <div className="bg-gray-800/50 rounded p-2 text-center">
+            <div className="bg-gray-800/50 rounded p-2 text-center cursor-pointer hover:bg-gray-700/50 transition-colors" onClick={() => setActiveModal('tasks')}>
               <p className="text-lg font-bold text-green-400">{completedTasks}<span className="text-gray-500">/{totalTasks}</span></p>
               <p className="text-xs text-gray-400">Tasks</p>
+              <p className="text-xs text-blue-400 mt-1">View Details →</p>
             </div>
             <div className="bg-gray-800/50 rounded p-2 text-center">
               <p className="text-lg font-bold text-yellow-400">{formatBytes(totalShuffleRead + totalShuffleWrite)}</p>
@@ -610,6 +972,211 @@ export default function UnifiedMonitor({ refreshInterval }: Props) {
           </div>
         </div>
       )}
+
+      {/* ═══════════════════════════════════════════════════════════════════════════ */}
+      {/* CLUSTER OVERVIEW - Comprehensive Spark Master UI Data */}
+      {/* ═══════════════════════════════════════════════════════════════════════════ */}
+      <div className="bg-gradient-to-r from-gray-800/80 to-gray-900/80 border border-gray-600 rounded-xl p-5 mb-4">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center">
+            <Server className="h-6 w-6 text-spark-orange mr-3" />
+            <div>
+              <h2 className="text-xl font-bold text-white">Spark Cluster Overview</h2>
+              <p className="text-xs text-gray-400">Real-time cluster status from Spark Master</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className={`px-3 py-1 rounded-full text-sm font-medium ${cluster?.status === 'ALIVE' ? 'bg-green-500/20 text-green-300 border border-green-500/30' : 'bg-red-500/20 text-red-300 border border-red-500/30'}`}>
+              {cluster?.status || 'Unknown'}
+            </span>
+            <span className="text-gray-500 text-xs font-mono">{cluster?.url || 'spark://spark-master:7077'}</span>
+          </div>
+        </div>
+        
+        {/* Quick Stats Row */}
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3 mb-4">
+          <div className="bg-gray-800/50 rounded-lg p-3 text-center border border-gray-700">
+            <p className="text-2xl font-bold text-green-400">{cluster?.aliveworkers || 0}</p>
+            <p className="text-xs text-gray-400">Alive Workers</p>
+          </div>
+          <div className="bg-gray-800/50 rounded-lg p-3 text-center border border-gray-700">
+            <p className="text-2xl font-bold text-white">{cluster?.cores || 0}</p>
+            <p className="text-xs text-gray-400">Total Cores</p>
+          </div>
+          <div className="bg-gray-800/50 rounded-lg p-3 text-center border border-gray-700">
+            <p className="text-2xl font-bold text-blue-400">{cluster?.coresused || 0}</p>
+            <p className="text-xs text-gray-400">Cores Used</p>
+          </div>
+          <div className="bg-gray-800/50 rounded-lg p-3 text-center border border-gray-700">
+            <p className="text-2xl font-bold text-white">{formatBytes((cluster?.memory || 0) * 1024 * 1024)}</p>
+            <p className="text-xs text-gray-400">Total Memory</p>
+          </div>
+          <div className="bg-gray-800/50 rounded-lg p-3 text-center border border-gray-700">
+            <p className="text-2xl font-bold text-purple-400">{formatBytes((cluster?.memoryused || 0) * 1024 * 1024)}</p>
+            <p className="text-xs text-gray-400">Memory Used</p>
+          </div>
+          <div className="bg-gray-800/50 rounded-lg p-3 text-center border border-gray-700">
+            <p className="text-2xl font-bold text-spark-orange">{cluster?.activeapps?.length || 0}</p>
+            <p className="text-xs text-gray-400">Running Apps</p>
+          </div>
+        </div>
+        
+        {/* Resource Usage Bars */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+          <div className="bg-gray-800/50 rounded-lg p-3 border border-gray-700">
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-gray-300 text-sm font-medium flex items-center">
+                <Cpu className="h-4 w-4 text-blue-400 mr-2" />
+                Cores in Use
+              </span>
+              <span className="text-white text-sm font-mono">{cluster?.coresused || 0} / {cluster?.cores || 0}</span>
+            </div>
+            <div className="h-3 bg-gray-700 rounded-full overflow-hidden">
+              <div 
+                className="h-full bg-gradient-to-r from-blue-500 to-blue-400 transition-all duration-500" 
+                style={{ width: `${cluster?.cores ? (cluster.coresused / cluster.cores) * 100 : 0}%` }} 
+              />
+            </div>
+            <p className="text-xs text-gray-500 mt-1">{cluster?.cores ? Math.round((cluster.coresused / cluster.cores) * 100) : 0}% utilized</p>
+          </div>
+          <div className="bg-gray-800/50 rounded-lg p-3 border border-gray-700">
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-gray-300 text-sm font-medium flex items-center">
+                <HardDrive className="h-4 w-4 text-purple-400 mr-2" />
+                Memory in Use
+              </span>
+              <span className="text-white text-sm font-mono">{formatBytes((cluster?.memoryused || 0) * 1024 * 1024)} / {formatBytes((cluster?.memory || 0) * 1024 * 1024)}</span>
+            </div>
+            <div className="h-3 bg-gray-700 rounded-full overflow-hidden">
+              <div 
+                className="h-full bg-gradient-to-r from-purple-500 to-purple-400 transition-all duration-500" 
+                style={{ width: `${cluster?.memory ? (cluster.memoryused / cluster.memory) * 100 : 0}%` }} 
+              />
+            </div>
+            <p className="text-xs text-gray-500 mt-1">{cluster?.memory ? Math.round((cluster.memoryused / cluster.memory) * 100) : 0}% utilized</p>
+          </div>
+        </div>
+        
+        {/* Workers Table */}
+        <div className="bg-gray-800/50 rounded-lg border border-gray-700 overflow-hidden mb-4">
+          <div className="bg-gray-900/50 px-4 py-2 border-b border-gray-700">
+            <h3 className="text-white font-medium flex items-center">
+              <Server className="h-4 w-4 text-blue-400 mr-2" />
+              Workers ({cluster?.workers?.length || 0})
+            </h3>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-900/30">
+                <tr>
+                  <th className="text-left p-3 text-gray-400 font-medium">Worker ID</th>
+                  <th className="text-left p-3 text-gray-400 font-medium">Address</th>
+                  <th className="text-center p-3 text-gray-400 font-medium">State</th>
+                  <th className="text-center p-3 text-gray-400 font-medium">Cores</th>
+                  <th className="text-center p-3 text-gray-400 font-medium">Memory</th>
+                </tr>
+              </thead>
+              <tbody>
+                {cluster?.workers?.map((worker) => (
+                  <tr key={worker.id} className="border-t border-gray-700/50 hover:bg-gray-700/20">
+                    <td className="p-3 text-gray-300 font-mono text-xs">{worker.id.substring(0, 30)}...</td>
+                    <td className="p-3 text-white font-mono">{worker.host}:{worker.port}</td>
+                    <td className="p-3 text-center">
+                      <span className={`px-2 py-0.5 rounded text-xs ${worker.state === 'ALIVE' ? 'bg-green-500/20 text-green-300' : 'bg-red-500/20 text-red-300'}`}>
+                        {worker.state}
+                      </span>
+                    </td>
+                    <td className="p-3 text-center">
+                      <span className="text-white">{worker.cores}</span>
+                      <span className="text-gray-500"> ({worker.coresused} used)</span>
+                    </td>
+                    <td className="p-3 text-center">
+                      <span className="text-white">{formatBytes(worker.memory * 1024 * 1024)}</span>
+                      <span className="text-gray-500"> ({formatBytes(worker.memoryused * 1024 * 1024)} used)</span>
+                    </td>
+                  </tr>
+                ))}
+                {(!cluster?.workers || cluster.workers.length === 0) && (
+                  <tr>
+                    <td colSpan={5} className="p-4 text-center text-gray-500">No workers connected</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        
+        {/* Running & Completed Applications */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {/* Running Applications */}
+          <div className="bg-gray-800/50 rounded-lg border border-gray-700 overflow-hidden">
+            <div className="bg-blue-900/30 px-4 py-2 border-b border-gray-700">
+              <h3 className="text-white font-medium flex items-center">
+                <Activity className="h-4 w-4 text-blue-400 mr-2 animate-pulse" />
+                Running Applications ({cluster?.activeapps?.length || 0})
+              </h3>
+            </div>
+            <div className="p-3 max-h-48 overflow-y-auto">
+              {cluster?.activeapps && cluster.activeapps.length > 0 ? (
+                <div className="space-y-2">
+                  {cluster.activeapps.map((app: any) => (
+                    <div key={app.id} className="bg-gray-900/50 rounded-lg p-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-blue-300 font-mono text-xs">{app.id}</span>
+                        <span className="bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded text-xs">{app.state}</span>
+                      </div>
+                      <p className="text-white font-medium text-sm mb-1">{app.name}</p>
+                      <div className="grid grid-cols-3 gap-2 text-xs text-gray-400">
+                        <div><span className="text-gray-500">Cores:</span> <span className="text-white">{app.cores}</span></div>
+                        <div><span className="text-gray-500">Memory:</span> <span className="text-white">{app.memoryperexecutor || app.memoryperslave} MiB</span></div>
+                        <div><span className="text-gray-500">Duration:</span> <span className="text-green-300">{Math.round((app.duration || 0) / 1000 / 60 * 10) / 10} min</span></div>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-1">Submitted: {app.submitdate}</p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-gray-500 text-sm text-center py-4">No running applications</p>
+              )}
+            </div>
+          </div>
+          
+          {/* Completed Applications */}
+          <div className="bg-gray-800/50 rounded-lg border border-gray-700 overflow-hidden">
+            <div className="bg-green-900/30 px-4 py-2 border-b border-gray-700">
+              <h3 className="text-white font-medium flex items-center">
+                <CheckCircle className="h-4 w-4 text-green-400 mr-2" />
+                Completed Applications ({cluster?.completedapps?.length || 0})
+              </h3>
+            </div>
+            <div className="p-3 max-h-48 overflow-y-auto">
+              {cluster?.completedapps && cluster.completedapps.length > 0 ? (
+                <div className="space-y-2">
+                  {cluster.completedapps.slice(0, 5).map((app: any) => (
+                    <div key={app.id} className="bg-gray-900/50 rounded-lg p-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-gray-400 font-mono text-xs">{app.id}</span>
+                        <span className="bg-green-500/20 text-green-300 px-2 py-0.5 rounded text-xs">{app.state}</span>
+                      </div>
+                      <p className="text-gray-300 font-medium text-sm mb-1">{app.name}</p>
+                      <div className="grid grid-cols-3 gap-2 text-xs text-gray-400">
+                        <div><span className="text-gray-500">Cores:</span> <span className="text-gray-300">{app.cores}</span></div>
+                        <div><span className="text-gray-500">Memory:</span> <span className="text-gray-300">{app.memoryperexecutor || app.memoryperslave} MiB</span></div>
+                        <div><span className="text-gray-500">Duration:</span> <span className="text-gray-300">{Math.round((app.duration || 0) / 1000 / 60 * 10) / 10} min</span></div>
+                      </div>
+                    </div>
+                  ))}
+                  {cluster.completedapps.length > 5 && (
+                    <p className="text-gray-500 text-xs text-center">+ {cluster.completedapps.length - 5} more completed</p>
+                  )}
+                </div>
+              ) : (
+                <p className="text-gray-500 text-sm text-center py-4">No completed applications</p>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* ═══════════════════════════════════════════════════════════════════════════ */}
       {/* SECTION 1: THE DRIVER */}
@@ -1195,11 +1762,159 @@ export default function UnifiedMonitor({ refreshInterval }: Props) {
       {/* SECTION 10: AGGREGATION & OUTPUT */}
       {/* ═══════════════════════════════════════════════════════════════════════════ */}
       <MonitorSection title="📤 Aggregation & Output" icon={FileText} color="text-orange-400" badge="Results" defaultExpanded={false}>
+        {/* Live Execution Metrics */}
+        {(jobs.length > 0 || stages.length > 0) && (
+          <div className="bg-orange-500/10 border border-orange-500/30 rounded-lg p-4 mb-4">
+            <h4 className="text-orange-400 font-medium mb-3 flex items-center">
+              <Activity className="h-4 w-4 mr-2" />
+              Live Execution Metrics
+            </h4>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+              <div className="bg-gray-800/50 rounded p-2 text-center">
+                <p className="text-xl font-bold text-white">{stages.reduce((sum, s) => sum + (s.inputRecords || 0), 0).toLocaleString()}</p>
+                <p className="text-xs text-gray-400">Records Read</p>
+              </div>
+              <div className="bg-gray-800/50 rounded p-2 text-center">
+                <p className="text-xl font-bold text-white">{stages.reduce((sum, s) => sum + (s.outputRecords || 0), 0).toLocaleString()}</p>
+                <p className="text-xs text-gray-400">Records Written</p>
+              </div>
+              <div className="bg-gray-800/50 rounded p-2 text-center">
+                <p className="text-xl font-bold text-cyan-400">{formatBytes(stages.reduce((sum, s) => sum + (s.inputBytes || 0), 0))}</p>
+                <p className="text-xs text-gray-400">Bytes Read</p>
+              </div>
+              <div className="bg-gray-800/50 rounded p-2 text-center">
+                <p className="text-xl font-bold text-pink-400">{formatBytes(stages.reduce((sum, s) => sum + (s.outputBytes || 0), 0))}</p>
+                <p className="text-xs text-gray-400">Bytes Written</p>
+              </div>
+            </div>
+            
+            {/* Completed Stage Outputs */}
+            <h5 className="text-gray-300 text-sm mb-2">Stage Output Summary</h5>
+            <div className="space-y-1 max-h-32 overflow-y-auto">
+              {stages.filter(s => s.status === 'COMPLETE').slice(-5).reverse().map(stage => {
+                const info = parseStageInfo(stage)
+                return (
+                  <div key={`${stage.stageId}-${stage.attemptId}`} className="flex items-center justify-between text-xs bg-gray-800/50 rounded p-2">
+                    <div className="flex items-center">
+                      <CheckCircle className="h-3 w-3 text-green-400 mr-2" />
+                      <span className="text-blue-300">{info.operation}</span>
+                      <span className="text-gray-500 ml-1">Stage {stage.stageId}</span>
+                    </div>
+                    <div className="flex gap-4 text-gray-400">
+                      <span>{stage.numCompleteTasks} tasks</span>
+                      <span className="text-cyan-300">{formatBytes(stage.inputBytes || 0)} in</span>
+                      <span className="text-pink-300">{formatBytes(stage.outputBytes || 0)} out</span>
+                    </div>
+                  </div>
+                )
+              })}
+              {stages.filter(s => s.status === 'COMPLETE').length === 0 && (
+                <p className="text-gray-500 text-xs text-center py-2">No stages completed yet...</p>
+              )}
+            </div>
+          </div>
+        )}
+        
+        {/* Sample Output Preview */}
+        <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-4 mb-4">
+          <h4 className="text-white font-medium mb-3 flex items-center">
+            <Database className="h-4 w-4 text-orange-400 mr-2" />
+            Sample Output Preview
+            <span className="text-xs text-gray-500 ml-2">(Simulated based on demo operations)</span>
+          </h4>
+          
+          {jobs.length > 0 ? (
+            <>
+              {/* Aggregation Result Sample */}
+              <div className="mb-4">
+                <p className="text-gray-400 text-xs mb-2">📊 GroupBy Aggregation Result (category summary):</p>
+                <div className="bg-gray-900 rounded overflow-hidden">
+                  <table className="w-full text-xs">
+                    <thead className="bg-gray-800">
+                      <tr>
+                        <th className="text-left p-2 text-gray-400">category</th>
+                        <th className="text-right p-2 text-gray-400">count</th>
+                        <th className="text-right p-2 text-gray-400">sum_value</th>
+                        <th className="text-right p-2 text-gray-400">avg_value</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {[
+                        { category: '0', count: '20,000', sum_value: '39,980,000', avg_value: '1,999.0' },
+                        { category: '1', count: '20,000', sum_value: '40,020,000', avg_value: '2,001.0' },
+                        { category: '2', count: '20,000', sum_value: '40,060,000', avg_value: '2,003.0' },
+                        { category: '...', count: '...', sum_value: '...', avg_value: '...' },
+                        { category: '99', count: '20,000', sum_value: '43,960,000', avg_value: '2,198.0' },
+                      ].map((row, i) => (
+                        <tr key={i} className="border-t border-gray-800">
+                          <td className="p-2 text-green-300 font-mono">{row.category}</td>
+                          <td className="p-2 text-right text-white">{row.count}</td>
+                          <td className="p-2 text-right text-cyan-300">{row.sum_value}</td>
+                          <td className="p-2 text-right text-yellow-300">{row.avg_value}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <p className="text-gray-500 text-xs mt-1 italic">100 categories total • {(stages.reduce((s, st) => s + st.numCompleteTasks, 0))} tasks completed</p>
+              </div>
+              
+              {/* Join Result Sample */}
+              <div className="mb-4">
+                <p className="text-gray-400 text-xs mb-2">🔗 Join Result Sample (df1 ⋈ df2 on category):</p>
+                <div className="bg-gray-900 rounded overflow-hidden">
+                  <table className="w-full text-xs">
+                    <thead className="bg-gray-800">
+                      <tr>
+                        <th className="text-left p-2 text-gray-400">id</th>
+                        <th className="text-left p-2 text-gray-400">category</th>
+                        <th className="text-right p-2 text-gray-400">value</th>
+                        <th className="text-right p-2 text-gray-400">extra_value</th>
+                        <th className="text-center p-2 text-gray-400">flag</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {[
+                        { id: '0', category: '0', value: '0', extra_value: '0', flag: 'EVEN' },
+                        { id: '100', category: '0', value: '200', extra_value: '300', flag: 'EVEN' },
+                        { id: '200', category: '0', value: '400', extra_value: '600', flag: 'EVEN' },
+                        { id: '1', category: '1', value: '2', extra_value: '3', flag: 'ODD' },
+                        { id: '101', category: '1', value: '202', extra_value: '303', flag: 'ODD' },
+                      ].map((row, i) => (
+                        <tr key={i} className="border-t border-gray-800">
+                          <td className="p-2 text-gray-300 font-mono">{row.id}</td>
+                          <td className="p-2 text-green-300">{row.category}</td>
+                          <td className="p-2 text-right text-white">{row.value}</td>
+                          <td className="p-2 text-right text-purple-300">{row.extra_value}</td>
+                          <td className="p-2 text-center">
+                            <span className={`px-2 py-0.5 rounded ${row.flag === 'EVEN' ? 'bg-blue-500/20 text-blue-300' : 'bg-orange-500/20 text-orange-300'}`}>
+                              {row.flag}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <p className="text-gray-500 text-xs mt-1 italic">Sampled 5 of {totalShuffleRead > 0 ? 'joined' : 'pending'} records</p>
+              </div>
+            </>
+          ) : (
+            <div className="text-center py-6 text-gray-400">
+              <Database className="h-8 w-8 mx-auto mb-2 opacity-50" />
+              <p>Run a job to see sample output</p>
+              <p className="text-xs text-gray-500 mt-1">Results will appear here as stages complete</p>
+            </div>
+          )}
+        </div>
+        
         <div className="grid grid-cols-2 gap-4">
           <div className="bg-orange-500/10 border border-orange-500/30 rounded-lg p-3">
             <h4 className="text-orange-400 font-medium mb-2 text-sm">Actions (Trigger Execution)</h4>
             <div className="space-y-1 text-xs">
+              <div className="flex justify-between bg-gray-800/50 rounded p-1"><code className="text-orange-400">.show(n)</code><span className="text-gray-400">Print n rows</span></div>
               <div className="flex justify-between bg-gray-800/50 rounded p-1"><code className="text-orange-400">.collect()</code><span className="text-gray-400">All to driver ⚠️</span></div>
+              <div className="flex justify-between bg-gray-800/50 rounded p-1"><code className="text-orange-400">.take(n)</code><span className="text-gray-400">First n rows ✓</span></div>
               <div className="flex justify-between bg-gray-800/50 rounded p-1"><code className="text-orange-400">.count()</code><span className="text-gray-400">Count rows</span></div>
               <div className="flex justify-between bg-gray-800/50 rounded p-1"><code className="text-orange-400">.write.parquet()</code><span className="text-gray-400">Save to storage ✓</span></div>
             </div>
@@ -1208,10 +1923,13 @@ export default function UnifiedMonitor({ refreshInterval }: Props) {
             <h4 className="text-white font-medium mb-2 text-sm">Job Results</h4>
             {jobs.length > 0 ? (
               <div className="space-y-1">
-                {jobs.slice(0, 3).map(job => (
+                {jobs.slice(0, 5).map(job => (
                   <div key={job.jobId} className="flex justify-between text-xs bg-gray-800/50 rounded p-1">
                     <span className="text-gray-300">Job {job.jobId}</span>
-                    <span className={`px-2 rounded ${job.status === 'SUCCEEDED' ? 'bg-green-500/20 text-green-300' : job.status === 'RUNNING' ? 'bg-blue-500/20 text-blue-300' : 'bg-gray-500/20 text-gray-300'}`}>{job.status}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-gray-500">{job.numCompletedTasks}/{job.numTasks}</span>
+                      <span className={`px-2 rounded ${job.status === 'SUCCEEDED' ? 'bg-green-500/20 text-green-300' : job.status === 'RUNNING' ? 'bg-blue-500/20 text-blue-300' : 'bg-gray-500/20 text-gray-300'}`}>{job.status}</span>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -1219,7 +1937,13 @@ export default function UnifiedMonitor({ refreshInterval }: Props) {
           </div>
         </div>
         <LearnBox title="📚 Output Best Practices" color="orange">
-          <p>Use <code className="bg-gray-800 px-1 rounded">.take(n)</code> instead of <code className="bg-gray-800 px-1 rounded">.collect()</code> for sampling. Write large results to Parquet. Use <code className="bg-gray-800 px-1 rounded">.cache()</code> if reusing intermediate results.</p>
+          <p className="mb-2">Avoid collecting large datasets to the driver - it can cause OOM errors!</p>
+          <ul className="text-xs space-y-1 ml-2">
+            <li>• Use <code className="bg-gray-800 px-1 rounded">.take(n)</code> or <code className="bg-gray-800 px-1 rounded">.show(n)</code> for sampling</li>
+            <li>• Write large results to <strong>Parquet</strong> (columnar, compressed)</li>
+            <li>• Use <code className="bg-gray-800 px-1 rounded">.cache()</code> if reusing intermediate results</li>
+            <li>• Consider <code className="bg-gray-800 px-1 rounded">.toPandas()</code> only for small datasets (&lt;1GB)</li>
+          </ul>
         </LearnBox>
       </MonitorSection>
 

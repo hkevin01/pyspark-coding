@@ -16,10 +16,15 @@ export default async function handler(
   }
 
   try {
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 3000)
+    
     const response = await fetch(`${sparkAppUrl}/api/v1/applications/${appId}/executors`, {
       method: 'GET',
       headers: { 'Accept': 'application/json' },
+      signal: controller.signal,
     })
+    clearTimeout(timeout)
 
     if (!response.ok) {
       if (response.status === 404) {
@@ -32,8 +37,8 @@ export default async function handler(
     const data = await response.json()
     res.setHeader('Content-Type', 'application/json')
     res.status(200).json(data)
-  } catch (error) {
-    console.error('Error fetching executors:', error)
+  } catch {
+    // Silently return empty array when Spark app is not running (port 4040 not available)
     res.status(200).json([])
   }
 }

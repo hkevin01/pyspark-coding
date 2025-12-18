@@ -16,12 +16,17 @@ export default async function handler(
       ? `${sparkAppUrl}/api/v1/applications/${appId}`
       : `${sparkAppUrl}/api/v1/applications`
     
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 3000)
+    
     const response = await fetch(url, {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
       },
+      signal: controller.signal,
     })
+    clearTimeout(timeout)
 
     if (!response.ok) {
       // Application UI might not be available if no jobs running
@@ -38,9 +43,8 @@ export default async function handler(
     res.setHeader('Content-Type', 'application/json')
     
     res.status(200).json(data)
-  } catch (error) {
-    console.error('Error fetching applications:', error)
-    // Return empty array instead of error for graceful degradation
+  } catch {
+    // Silently return empty array when Spark app is not running (port 4040 not available)
     res.status(200).json([])
   }
 }
