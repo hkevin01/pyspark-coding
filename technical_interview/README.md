@@ -2,6 +2,36 @@
 
 Comprehensive collection of real-world PySpark interview questions commonly asked at FAANG, unicorns, and data-focused companies.
 
+## 📂 Folder Structure
+
+```
+technical_interview/
+├── blank_practice/          # Empty notebooks with guided comments for live interviews
+├── completed_solutions/     # Full solutions with detailed explanations  
+├── reference_docs/          # Quick reference guides (shuffle, partitions, etc.)
+├── README.md               # This file
+├── INTERVIEW_PREP_SUMMARY.md
+└── NOTEBOOK_GUIDE.md
+```
+
+## 🎯 For Interview Day (Live Coding)
+
+Open any notebook from **`blank_practice/`**:
+- `blank_data_cleaning.ipynb` - Duplicates, nulls, transformations
+- `blank_joins_aggregations.ipynb` - Joins, groupBy, aggregations
+- `blank_window_functions.ipynb` - Ranking, running totals, lag/lead
+- `blank_performance.ipynb` - Partitioning, broadcast, caching
+- `blank_sql_operations.ipynb` - Complex SQL queries
+- `blank_udfs.ipynb` - User-defined functions
+- `blank_real_world_scenario.ipynb` - E-commerce analysis
+
+## 📚 For Study & Practice
+
+Open notebooks from **`completed_solutions/`**:
+- `01_data_manipulation_questions.ipynb` - 10 questions with solutions
+- `02_performance_optimization_questions.ipynb` - 10 questions with solutions
+- `03_sql_style_questions.ipynb` - 10 questions with solutions
+
 ## � Available Formats
 
 - **📓 Jupyter Notebooks** (Recommended) - Interactive learning with markdown explanations
