@@ -115,8 +115,44 @@ export default async function handler(
     const data = await response.json()
     res.status(200).json(data)
   } catch (error) {
-    // If Spark is unavailable, return mock data instead of error
-    console.log('Spark Master not available, returning mock data')
+    // If Spark is unavailable, try to start the cluster automatically
+    console.log('Spark Master not available, attempting to auto-start cluster...')
+
+    try {
+      const { exec } = require('child_process')
+      const { promisify } = require('util')
+      const execAsync = promisify(exec)
+
+      // Check if cluster is running
+      const { stdout: checkOutput } = await execAsync('docker ps --filter "name=spark-master" --format "{{.Names}}"')
+
+      if (!checkOutput.trim().includes('spark-master')) {
+        console.log('Starting Spark cluster automatically...')
+        const composeDir = process.env.SPARK_COMPOSE_DIR || '/home/kevin/Projects/pyspark-coding/docker/spark-cluster'
+        await execAsync(`cd ${composeDir} && docker compose up -d`, { timeout: 30000 })
+
+        // Wait for cluster to initialize
+        await new Promise(resolve => setTimeout(resolve, 5000))
+
+        // Retry fetching cluster data
+        const retryResponse = await fetch(`${sparkMasterUrl}/json/`, {
+          method: 'GET',
+          headers: { 'Accept': 'application/json' },
+          signal: AbortSignal.timeout(3000)
+        })
+
+        if (retryResponse.ok) {
+          const data = await retryResponse.json()
+          console.log('Cluster started successfully!')
+          return res.status(200).json(data)
+        }
+      }
+    } catch (startError) {
+      console.error('Failed to auto-start cluster:', startError)
+    }
+
+    // If auto-start failed, return mock data
+    console.log('Returning mock data')
     res.status(200).json(getMockClusterData())
   }
 }
