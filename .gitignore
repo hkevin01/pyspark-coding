@@ -24,7 +24,22 @@ wheels/
 venv/
 env/
 ENV/
+.venv/
 .venv
+**/venv/
+**/env/
+**/.venv/
+**/my-venv/
+virtualenv/
+**/virtualenv/
+.Python
+pyvenv.cfg
+# Virtual environment directories that shouldn't be in root
+/bin/
+/lib/
+/lib64/
+/include/
+/share/
 
 # IDEs
 .vscode/settings.json
