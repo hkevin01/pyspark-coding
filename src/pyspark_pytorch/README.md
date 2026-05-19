@@ -164,15 +164,15 @@ Raw Data → PySpark (ETL) → PyTorch (Train) → PySpark (Deploy) → Predicti
 
 ## 📊 When to Use What
 
-| Task | Use PySpark | Use PyTorch | Why |
+| <sub>Task</sub> | <sub>Use PySpark</sub> | <sub>Use PyTorch</sub> | <sub>Why</sub> |
 |------|-------------|-------------|-----|
-| **Data Loading** | ✅ | ❌ | Distributed I/O, handles large files |
-| **Feature Engineering** | ✅ | ❌ | SQL-like operations, window functions |
-| **Data Aggregation** | ✅ | ❌ | Optimized for groupBy, joins |
-| **Model Training** | ❌ | ✅ | Deep learning, GPU support |
-| **Model Architecture** | ❌ | ✅ | Flexible neural networks |
-| **Batch Inference** | ✅ | ✅ | Both (use Pandas UDF for PyTorch) |
-| **Data Sampling** | ✅ | ❌ | Random sampling from billions of rows |
+| <sub>**Data Loading**</sub> | <sub>✅</sub> | <sub>❌</sub> | <sub>Distributed I/O, handles large files</sub> |
+| <sub>**Feature Engineering**</sub> | <sub>✅</sub> | <sub>❌</sub> | <sub>SQL-like operations, window functions</sub> |
+| <sub>**Data Aggregation**</sub> | <sub>✅</sub> | <sub>❌</sub> | <sub>Optimized for groupBy, joins</sub> |
+| <sub>**Model Training**</sub> | <sub>❌</sub> | <sub>✅</sub> | <sub>Deep learning, GPU support</sub> |
+| <sub>**Model Architecture**</sub> | <sub>❌</sub> | <sub>✅</sub> | <sub>Flexible neural networks</sub> |
+| <sub>**Batch Inference**</sub> | <sub>✅</sub> | <sub>✅</sub> | <sub>Both (use Pandas UDF for PyTorch)</sub> |
+| <sub>**Data Sampling**</sub> | <sub>✅</sub> | <sub>❌</sub> | <sub>Random sampling from billions of rows</sub> |
 
 ---
 
@@ -298,12 +298,12 @@ df = df.withColumn("salt", F.rand() * 10)
 
 ## 📈 Scaling Considerations
 
-| Dataset Size | Approach | Tools |
+| <sub>Dataset Size</sub> | <sub>Approach</sub> | <sub>Tools</sub> |
 |--------------|----------|-------|
-| **< 1GB** | Single machine | Pandas + PyTorch |
-| **1-100GB** | PySpark + PyTorch | Local cluster |
-| **100GB-1TB** | Distributed | PySpark cluster + GPU |
-| **> 1TB** | Partitioned training | Multiple PySpark jobs |
+| <sub>**< 1GB**</sub> | <sub>Single machine</sub> | <sub>Pandas + PyTorch</sub> |
+| <sub>**1-100GB**</sub> | <sub>PySpark + PyTorch</sub> | <sub>Local cluster</sub> |
+| <sub>**100GB-1TB**</sub> | <sub>Distributed</sub> | <sub>PySpark cluster + GPU</sub> |
+| <sub>**> 1TB**</sub> | <sub>Partitioned training</sub> | <sub>Multiple PySpark jobs</sub> |
 
 ---
 
