@@ -321,13 +321,13 @@ After mastering this practice system, you'll be able to:
 
 ## 🏆 Success Metrics
 
-| Level | Time | Criteria |
+| <sub>Level</sub> | <sub>Time</sub> | <sub>Criteria</sub> |
 |-------|------|----------|
-| **Beginner** | 30+ min | Completes with hints |
-| **Intermediate** | 15-20 min | Completes without hints |
-| **Advanced** | 10-15 min | Clean code, no errors |
-| **Expert** | < 10 min | Production-ready, confident |
-| **Interview Ready** | 10-12 min | Consistent, explainable |
+| <sub>**Beginner**</sub> | <sub>30+ min</sub> | <sub>Completes with hints</sub> |
+| <sub>**Intermediate**</sub> | <sub>15-20 min</sub> | <sub>Completes without hints</sub> |
+| <sub>**Advanced**</sub> | <sub>10-15 min</sub> | <sub>Clean code, no errors</sub> |
+| <sub>**Expert**</sub> | <sub>< 10 min</sub> | <sub>Production-ready, confident</sub> |
+| <sub>**Interview Ready**</sub> | <sub>10-12 min</sub> | <sub>Consistent, explainable</sub> |
 
 ## 📖 Reference Solution Structure
 
