@@ -343,14 +343,14 @@ results.toPandas().to_csv("results.csv")
 
 PySpark supports all major research data formats:
 
-| Format | Use Case | Example |
+| <sub>Format</sub> | <sub>Use Case</sub> | <sub>Example</sub> |
 |--------|----------|---------|
-| **CSV/TSV** | Tabular data | Survey data, gene expression matrices |
-| **Parquet** | Columnar storage | Large-scale genomics, climate data |
-| **JSON** | Nested data | Social media, web APIs |
-| **HDF5** | Scientific arrays | Astronomy images, physics simulations |
-| **VCF/BCF** | Genomics | Genetic variant data |
-| **FITS** | Astronomy | Telescope images |
+| <sub>**CSV/TSV**</sub> | <sub>Tabular data</sub> | <sub>Survey data, gene expression matrices</sub> |
+| <sub>**Parquet**</sub> | <sub>Columnar storage</sub> | <sub>Large-scale genomics, climate data</sub> |
+| <sub>**JSON**</sub> | <sub>Nested data</sub> | <sub>Social media, web APIs</sub> |
+| <sub>**HDF5**</sub> | <sub>Scientific arrays</sub> | <sub>Astronomy images, physics simulations</sub> |
+| <sub>**VCF/BCF**</sub> | <sub>Genomics</sub> | <sub>Genetic variant data</sub> |
+| <sub>**FITS**</sub> | <sub>Astronomy</sub> | <sub>Telescope images</sub> |
 
 ---
 
