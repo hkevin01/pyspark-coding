@@ -15,12 +15,12 @@ Each example shows both the **dangerous pattern** (❌) and the **safe alternati
 
 ## 📁 Files Overview
 
-| File | Lines | Topics Covered |
+| <sub>File</sub> | <sub>Lines</sub> | <sub>Topics Covered</sub> |
 |------|-------|----------------|
-| `01_closure_serialization.py` | 527 | Non-serializable objects, mutable state, instance methods, late binding |
-| `02_lazy_evaluation.py` | 665 | Multiple recomputations, side effects, accumulator double-counting, random values |
-| `03_data_skew_partitions.py` | 160 | Data skew, hot keys, partition imbalance, salting techniques |
-| `04_type_coercion_null.py` | 210 | Implicit coercion, NULL propagation, division by zero, NaN vs NULL |
+| <sub>`01_closure_serialization.py`</sub> | <sub>527</sub> | <sub>Non-serializable objects, mutable state, instance methods, late binding</sub> |
+| <sub>`02_lazy_evaluation.py`</sub> | <sub>665</sub> | <sub>Multiple recomputations, side effects, accumulator double-counting, random values</sub> |
+| <sub>`03_data_skew_partitions.py`</sub> | <sub>160</sub> | <sub>Data skew, hot keys, partition imbalance, salting techniques</sub> |
+| <sub>`04_type_coercion_null.py`</sub> | <sub>210</sub> | <sub>Implicit coercion, NULL propagation, division by zero, NaN vs NULL</sub> |
 
 **Total: 1,562 lines of production-ready anti-patterns and solutions**
 
@@ -259,15 +259,15 @@ lambda x: x * i               # Late binding in loops
 
 ## 📈 Performance Impact
 
-| Pattern | Performance Impact | Severity |
+| <sub>Pattern</sub> | <sub>Performance Impact</sub> | <sub>Severity</sub> |
 |---------|-------------------|----------|
-| No caching + multiple actions | 2-10x slower | 🔴 Critical |
-| Data skew | OOM crashes | 🔴 Critical |
-| Single partition | No parallelism | 🔴 Critical |
-| Too many partitions | 50-200% overhead | 🟠 High |
-| Regular UDF vs Pandas UDF | 10-100x slower | 🟠 High |
-| Accumulator double-count | Wrong results | 🔴 Critical |
-| Type coercion data loss | Silent corruption | 🔴 Critical |
+| <sub>No caching + multiple actions</sub> | <sub>2-10x slower</sub> | <sub>🔴 Critical</sub> |
+| <sub>Data skew</sub> | <sub>OOM crashes</sub> | <sub>🔴 Critical</sub> |
+| <sub>Single partition</sub> | <sub>No parallelism</sub> | <sub>🔴 Critical</sub> |
+| <sub>Too many partitions</sub> | <sub>50-200% overhead</sub> | <sub>🟠 High</sub> |
+| <sub>Regular UDF vs Pandas UDF</sub> | <sub>10-100x slower</sub> | <sub>🟠 High</sub> |
+| <sub>Accumulator double-count</sub> | <sub>Wrong results</sub> | <sub>🔴 Critical</sub> |
+| <sub>Type coercion data loss</sub> | <sub>Silent corruption</sub> | <sub>🔴 Critical</sub> |
 
 ## 🛠️ Defensive Patterns
 
