@@ -273,10 +273,10 @@ Visual dashboard with:
 
 Readable format for documentation:
 
-| Test Name | Status | Duration | CPU % | Memory % |
+| <sub>Test Name</sub> | <sub>Status</sub> | <sub>Duration</sub> | <sub>CPU %</sub> | <sub>Memory %</sub> |
 |-----------|--------|----------|-------|----------|
-| test_spark_session_creation | ✅ passed | 0.123 | 25.3 | 45.2 |
-| test_broadcast_join | ✅ passed | 2.456 | 67.8 | 72.1 |
+| <sub>test_spark_session_creation</sub> | <sub>✅ passed</sub> | <sub>0.123</sub> | <sub>25.3</sub> | <sub>45.2</sub> |
+| <sub>test_broadcast_join</sub> | <sub>✅ passed</sub> | <sub>2.456</sub> | <sub>67.8</sub> | <sub>72.1</sub> |
 
 ## Best Practices
 
