@@ -90,13 +90,13 @@ spark = SparkSession.builder \
 
 ### Compression Codecs
 
-| Codec | Speed | Compression Ratio | Use Case |
+| <sub>Codec</sub> | <sub>Speed</sub> | <sub>Compression Ratio</sub> | <sub>Use Case</sub> |
 |-------|-------|-------------------|----------|
-| uncompressed | Fastest | 1x (no compression) | Very fast I/O required |
-| snappy | Fast | 2-4x | **General purpose (recommended)** |
-| gzip | Slow | 4-6x | Cold storage, maximize space savings |
-| lzo | Fast | 2-3x | Similar to snappy |
-| brotli | Slowest | 6-8x | Maximum compression |
+| <sub>uncompressed</sub> | <sub>Fastest</sub> | <sub>1x (no compression)</sub> | <sub>Very fast I/O required</sub> |
+| <sub>snappy</sub> | <sub>Fast</sub> | <sub>2-4x</sub> | <sub>**General purpose (recommended)**</sub> |
+| <sub>gzip</sub> | <sub>Slow</sub> | <sub>4-6x</sub> | <sub>Cold storage, maximize space savings</sub> |
+| <sub>lzo</sub> | <sub>Fast</sub> | <sub>2-3x</sub> | <sub>Similar to snappy</sub> |
+| <sub>brotli</sub> | <sub>Slowest</sub> | <sub>6-8x</sub> | <sub>Maximum compression</sub> |
 
 **Recommendation**: Use **snappy** for most workloads.
 
@@ -202,12 +202,12 @@ df = spark.read.parquet("/data") \
 
 ### Storage Efficiency
 
-| Format | Size | Compression | Read Speed | Write Speed |
+| <sub>Format</sub> | <sub>Size</sub> | <sub>Compression</sub> | <sub>Read Speed</sub> | <sub>Write Speed</sub> |
 |--------|------|-------------|------------|-------------|
-| CSV | 1000 MB | None | Slow | Fast |
-| JSON | 800 MB | None | Slow | Fast |
-| Parquet (snappy) | 100 MB | Good | **Very Fast** | Fast |
-| Parquet (gzip) | 60 MB | **Best** | Fast | Slow |
+| <sub>CSV</sub> | <sub>1000 MB</sub> | <sub>None</sub> | <sub>Slow</sub> | <sub>Fast</sub> |
+| <sub>JSON</sub> | <sub>800 MB</sub> | <sub>None</sub> | <sub>Slow</sub> | <sub>Fast</sub> |
+| <sub>Parquet (snappy)</sub> | <sub>100 MB</sub> | <sub>Good</sub> | <sub>**Very Fast**</sub> | <sub>Fast</sub> |
+| <sub>Parquet (gzip)</sub> | <sub>60 MB</sub> | <sub>**Best**</sub> | <sub>Fast</sub> | <sub>Slow</sub> |
 
 *Results vary by dataset characteristics*
 
@@ -215,12 +215,12 @@ df = spark.read.parquet("/data") \
 
 **Scenario**: Select 3 of 20 columns, filter on 1 column, 10 GB dataset
 
-| Format | Time | Data Scanned |
+| <sub>Format</sub> | <sub>Time</sub> | <sub>Data Scanned</sub> |
 |--------|------|--------------|
-| CSV | 120s | 10 GB |
-| Parquet (no optimization) | 45s | 10 GB |
-| Parquet (column pruning) | 15s | 1.5 GB |
-| Parquet (pruning + pushdown) | **3s** | **0.2 GB** |
+| <sub>CSV</sub> | <sub>120s</sub> | <sub>10 GB</sub> |
+| <sub>Parquet (no optimization)</sub> | <sub>45s</sub> | <sub>10 GB</sub> |
+| <sub>Parquet (column pruning)</sub> | <sub>15s</sub> | <sub>1.5 GB</sub> |
+| <sub>Parquet (pruning + pushdown)</sub> | <sub>**3s**</sub> | <sub>**0.2 GB**</sub> |
 
 ## 🔧 Troubleshooting
 
