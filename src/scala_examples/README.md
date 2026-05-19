@@ -27,14 +27,14 @@ Scala is a **modern, statically-typed programming language** that runs on the **
 
 ### Key Characteristics
 
-| Feature | Description |
+| <sub>Feature</sub> | <sub>Description</sub> |
 |---------|-------------|
-| **Platform** | Java Virtual Machine (JVM) |
-| **Paradigm** | Object-Oriented + Functional |
-| **Type System** | Static typing with type inference |
-| **Compilation** | Compiles to Java bytecode |
-| **Creator** | Martin Odersky (2003) |
-| **Companies Using** | Twitter, LinkedIn, Netflix, Databricks, Apache Spark |
+| <sub>**Platform**</sub> | <sub>Java Virtual Machine (JVM)</sub> |
+| <sub>**Paradigm**</sub> | <sub>Object-Oriented + Functional</sub> |
+| <sub>**Type System**</sub> | <sub>Static typing with type inference</sub> |
+| <sub>**Compilation**</sub> | <sub>Compiles to Java bytecode</sub> |
+| <sub>**Creator**</sub> | <sub>Martin Odersky (2003)</sub> |
+| <sub>**Companies Using**</sub> | <sub>Twitter, LinkedIn, Netflix, Databricks, Apache Spark</sub> |
 
 ### What Languages is Scala Similar To?
 
@@ -95,13 +95,13 @@ Reasons:
 
 ### Core Examples
 
-| File | Size | Description |
+| <sub>File</sub> | <sub>Size</sub> | <sub>Description</sub> |
 |------|------|-------------|
-| `01_scala_basics.scala` | ~8 KB | Pure Scala language fundamentals |
-| `02_spark_scala_basics.scala` | ~10 KB | Spark operations in Scala |
-| `03_scala_udfs.scala` | ~6 KB | User-Defined Functions (UDFs) |
-| `04_scala_pyspark_integration.py` | ~5 KB | Using Scala JARs from PySpark |
-| `05_graphframes_example.scala` | ~10 KB | Graph processing with GraphFrames |
+| <sub>`01_scala_basics.scala`</sub> | <sub>~8 KB</sub> | <sub>Pure Scala language fundamentals</sub> |
+| <sub>`02_spark_scala_basics.scala`</sub> | <sub>~10 KB</sub> | <sub>Spark operations in Scala</sub> |
+| <sub>`03_scala_udfs.scala`</sub> | <sub>~6 KB</sub> | <sub>User-Defined Functions (UDFs)</sub> |
+| <sub>`04_scala_pyspark_integration.py`</sub> | <sub>~5 KB</sub> | <sub>Using Scala JARs from PySpark</sub> |
+| <sub>`05_graphframes_example.scala`</sub> | <sub>~10 KB</sub> | <sub>Graph processing with GraphFrames</sub> |
 
 ### What's Covered
 
@@ -154,11 +154,11 @@ Reasons:
 
 **Benchmark Results (1 Million Rows):**
 
-| Operation | Scala UDF | Python UDF | Pandas UDF |
+| <sub>Operation</sub> | <sub>Scala UDF</sub> | <sub>Python UDF</sub> | <sub>Pandas UDF</sub> |
 |-----------|-----------|------------|------------|
-| Simple math | 2.1s | 5.3s (2.5x) | 2.4s (1.1x) |
-| String ops | 3.5s | 8.7s (2.5x) | 4.2s (1.2x) |
-| Complex calc | 10.2s | 25.6s (2.5x) | 12.1s (1.2x) |
+| <sub>Simple math</sub> | <sub>2.1s</sub> | <sub>5.3s (2.5x)</sub> | <sub>2.4s (1.1x)</sub> |
+| <sub>String ops</sub> | <sub>3.5s</sub> | <sub>8.7s (2.5x)</sub> | <sub>4.2s (1.2x)</sub> |
+| <sub>Complex calc</sub> | <sub>10.2s</sub> | <sub>25.6s (2.5x)</sub> | <sub>12.1s (1.2x)</sub> |
 
 **Key Insight**: Scala UDFs are 2-5x faster than Python UDFs!
 
@@ -329,12 +329,12 @@ result = df.filter(col("age") > 25) \
 
 ### Performance Comparison
 
-| Operation | Scala | PySpark | Winner |
+| <sub>Operation</sub> | <sub>Scala</sub> | <sub>PySpark</sub> | <sub>Winner</sub> |
 |-----------|-------|---------|--------|
-| DataFrame ops | 100s | 105s | Scala (5%) |
-| UDFs | 100s | 250s | **Scala (2.5x)** |
-| Pandas UDFs | 100s | 120s | Scala (20%) |
-| Native functions | 100s | 105s | ~Equal |
+| <sub>DataFrame ops</sub> | <sub>100s</sub> | <sub>105s</sub> | <sub>Scala (5%)</sub> |
+| <sub>UDFs</sub> | <sub>100s</sub> | <sub>250s</sub> | <sub>**Scala (2.5x)**</sub> |
+| <sub>Pandas UDFs</sub> | <sub>100s</sub> | <sub>120s</sub> | <sub>Scala (20%)</sub> |
+| <sub>Native functions</sub> | <sub>100s</sub> | <sub>105s</sub> | <sub>~Equal</sub> |
 
 **Conclusion**: Use Scala for UDF-heavy workloads, PySpark is fine for everything else.
 
@@ -388,28 +388,28 @@ result = df.filter(col("age") > 25) \
 
 ### Scala vs Python Detailed
 
-| Feature | Scala | Python |
+| <sub>Feature</sub> | <sub>Scala</sub> | <sub>Python</sub> |
 |---------|-------|--------|
-| **Typing** | Static (compile-time) | Dynamic (runtime) |
-| **Compilation** | Compiled to bytecode | Interpreted |
-| **Immutability** | Default (val) | Not default |
-| **Type Inference** | Yes | Not needed (duck typing) |
-| **Pattern Matching** | Powerful (match) | Basic (match in 3.10+) |
-| **Null Safety** | Option[T] | None (no enforcement) |
-| **Performance** | Fast (JVM) | Slower (interpreter) |
-| **Learning Curve** | Steeper | Easier |
+| <sub>**Typing**</sub> | <sub>Static (compile-time)</sub> | <sub>Dynamic (runtime)</sub> |
+| <sub>**Compilation**</sub> | <sub>Compiled to bytecode</sub> | <sub>Interpreted</sub> |
+| <sub>**Immutability**</sub> | <sub>Default (val)</sub> | <sub>Not default</sub> |
+| <sub>**Type Inference**</sub> | <sub>Yes</sub> | <sub>Not needed (duck typing)</sub> |
+| <sub>**Pattern Matching**</sub> | <sub>Powerful (match)</sub> | <sub>Basic (match in 3.10+)</sub> |
+| <sub>**Null Safety**</sub> | <sub>Option[T]</sub> | <sub>None (no enforcement)</sub> |
+| <sub>**Performance**</sub> | <sub>Fast (JVM)</sub> | <sub>Slower (interpreter)</sub> |
+| <sub>**Learning Curve**</sub> | <sub>Steeper</sub> | <sub>Easier</sub> |
 
 ### Scala vs Java
 
-| Feature | Scala | Java |
+| <sub>Feature</sub> | <sub>Scala</sub> | <sub>Java</sub> |
 |---------|-------|------|
-| **Verbosity** | Concise (2-3x less code) | Verbose |
-| **Functional** | Yes (first-class functions) | Limited (Java 8+) |
-| **Type Inference** | Yes | Limited (Java 10+) |
-| **Pattern Matching** | Yes | No (preview in Java 17+) |
-| **Null Safety** | Option[T] | No (NullPointerException) |
-| **Immutability** | val (default) | final (explicit) |
-| **Interop** | Full Java compatibility | N/A |
+| <sub>**Verbosity**</sub> | <sub>Concise (2-3x less code)</sub> | <sub>Verbose</sub> |
+| <sub>**Functional**</sub> | <sub>Yes (first-class functions)</sub> | <sub>Limited (Java 8+)</sub> |
+| <sub>**Type Inference**</sub> | <sub>Yes</sub> | <sub>Limited (Java 10+)</sub> |
+| <sub>**Pattern Matching**</sub> | <sub>Yes</sub> | <sub>No (preview in Java 17+)</sub> |
+| <sub>**Null Safety**</sub> | <sub>Option[T]</sub> | <sub>No (NullPointerException)</sub> |
+| <sub>**Immutability**</sub> | <sub>val (default)</sub> | <sub>final (explicit)</sub> |
+| <sub>**Interop**</sub> | <sub>Full Java compatibility</sub> | <sub>N/A</sub> |
 
 ---
 
