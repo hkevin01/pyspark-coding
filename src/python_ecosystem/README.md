@@ -18,14 +18,14 @@ This package demonstrates how to integrate Python's most powerful data science l
 
 PySpark's **biggest advantage over Scala** is access to the entire Python data science ecosystem:
 
-| Library | Purpose | Integration Method |
+| <sub>Library</sub> | <sub>Purpose</sub> | <sub>Integration Method</sub> |
 |---------|---------|-------------------|
-| **NumPy** | Fast numerical operations | Pandas UDFs |
-| **Pandas** | Rich DataFrame manipulation | Pandas UDFs + Apache Arrow |
-| **Scikit-learn** | 100+ ML algorithms | Sample → Train → Broadcast |
-| **PyTorch** | Deep learning | Pandas UDFs for inference |
-| **Matplotlib** | Custom visualizations | Sample → Plot |
-| **Seaborn** | Statistical plots | Sample → Plot |
+| <sub>**NumPy**</sub> | <sub>Fast numerical operations</sub> | <sub>Pandas UDFs</sub> |
+| <sub>**Pandas**</sub> | <sub>Rich DataFrame manipulation</sub> | <sub>Pandas UDFs + Apache Arrow</sub> |
+| <sub>**Scikit-learn**</sub> | <sub>100+ ML algorithms</sub> | <sub>Sample → Train → Broadcast</sub> |
+| <sub>**PyTorch**</sub> | <sub>Deep learning</sub> | <sub>Pandas UDFs for inference</sub> |
+| <sub>**Matplotlib**</sub> | <sub>Custom visualizations</sub> | <sub>Sample → Plot</sub> |
+| <sub>**Seaborn**</sub> | <sub>Statistical plots</sub> | <sub>Sample → Plot</sub> |
 
 ## 🚀 Why This Matters
 
@@ -346,11 +346,11 @@ spark = SparkSession.builder \
 
 ### Pandas UDFs vs Regular Python UDFs
 
-| Operation | Python UDF | Pandas UDF | Speedup |
+| <sub>Operation</sub> | <sub>Python UDF</sub> | <sub>Pandas UDF</sub> | <sub>Speedup</sub> |
 |-----------|-----------|------------|---------|
-| Math operations | ~25s | ~2s | **12x faster** |
-| String operations | ~30s | ~3s | **10x faster** |
-| Statistical ops | ~40s | ~2s | **20x faster** |
+| <sub>Math operations</sub> | <sub>~25s</sub> | <sub>~2s</sub> | <sub>**12x faster**</sub> |
+| <sub>String operations</sub> | <sub>~30s</sub> | <sub>~3s</sub> | <sub>**10x faster**</sub> |
+| <sub>Statistical ops</sub> | <sub>~40s</sub> | <sub>~2s</sub> | <sub>**20x faster**</sub> |
 
 **Why?**
 - **Regular UDF**: Serializes each row individually (slow!)
@@ -358,11 +358,11 @@ spark = SparkSession.builder \
 
 ### NumPy Vectorization
 
-| Method | Time (100K rows) | Speedup |
+| <sub>Method</sub> | <sub>Time (100K rows)</sub> | <sub>Speedup</sub> |
 |--------|-----------------|---------|
-| Python loop | ~10s | 1x |
-| List comprehension | ~5s | 2x |
-| NumPy vectorized | ~0.1s | **100x faster** |
+| <sub>Python loop</sub> | <sub>~10s</sub> | <sub>1x</sub> |
+| <sub>List comprehension</sub> | <sub>~5s</sub> | <sub>2x</sub> |
+| <sub>NumPy vectorized</sub> | <sub>~0.1s</sub> | <sub>**100x faster**</sub> |
 
 ## 🎯 Best Practices
 
@@ -529,16 +529,16 @@ def pytorch_inference(*features):
 
 ## 📊 Comparison: PySpark vs Scala
 
-| Aspect | PySpark | Scala Spark |
+| <sub>Aspect</sub> | <sub>PySpark</sub> | <sub>Scala Spark</sub> |
 |--------|---------|-------------|
-| **Ecosystem** | ✅✅✅ NumPy, Pandas, Scikit-learn, PyTorch | ❌ Limited libraries |
-| **Performance** | ✅ Fast with Pandas UDFs | ✅✅ Native JVM performance |
-| **ML Libraries** | ✅✅✅ 1000+ packages | ⚠️ Spark MLlib only |
-| **Visualization** | ✅✅ Matplotlib, Seaborn | ❌ Limited options |
-| **Development Speed** | ✅✅✅ Very fast | ⚠️ Slower |
-| **Type Safety** | ❌ Runtime errors | ✅✅ Compile-time checks |
-| **Community** | ✅✅✅ Massive data science community | ⚠️ Smaller |
-| **Learning Curve** | ✅✅ Easy for data scientists | ⚠️ Steeper |
+| <sub>**Ecosystem**</sub> | <sub>✅✅✅ NumPy, Pandas, Scikit-learn, PyTorch</sub> | <sub>❌ Limited libraries</sub> |
+| <sub>**Performance**</sub> | <sub>✅ Fast with Pandas UDFs</sub> | <sub>✅✅ Native JVM performance</sub> |
+| <sub>**ML Libraries**</sub> | <sub>✅✅✅ 1000+ packages</sub> | <sub>⚠️ Spark MLlib only</sub> |
+| <sub>**Visualization**</sub> | <sub>✅✅ Matplotlib, Seaborn</sub> | <sub>❌ Limited options</sub> |
+| <sub>**Development Speed**</sub> | <sub>✅✅✅ Very fast</sub> | <sub>⚠️ Slower</sub> |
+| <sub>**Type Safety**</sub> | <sub>❌ Runtime errors</sub> | <sub>✅✅ Compile-time checks</sub> |
+| <sub>**Community**</sub> | <sub>✅✅✅ Massive data science community</sub> | <sub>⚠️ Smaller</sub> |
+| <sub>**Learning Curve**</sub> | <sub>✅✅ Easy for data scientists</sub> | <sub>⚠️ Steeper</sub> |
 
 **Conclusion**: For data science and ML, Python's ecosystem advantage is decisive!
 
