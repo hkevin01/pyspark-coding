@@ -19,13 +19,13 @@ RDDs are the low-level API in Spark - the foundation beneath DataFrames. Underst
 
 ### RDD vs DataFrame
 
-| Feature | RDD | DataFrame |
+| <sub>Feature</sub> | <sub>RDD</sub> | <sub>DataFrame</sub> |
 |---------|-----|-----------|
-| API Level | Low-level | High-level |
-| Type Safety | Compile-time (Scala/Java) | Runtime |
-| Optimization | Manual | Automatic (Catalyst) |
-| Performance | Slower (no optimizer) | Faster (optimized) |
-| Use Case | Complex algorithms, control | SQL-like operations |
+| <sub>API Level</sub> | <sub>Low-level</sub> | <sub>High-level</sub> |
+| <sub>Type Safety</sub> | <sub>Compile-time (Scala/Java)</sub> | <sub>Runtime</sub> |
+| <sub>Optimization</sub> | <sub>Manual</sub> | <sub>Automatic (Catalyst)</sub> |
+| <sub>Performance</sub> | <sub>Slower (no optimizer)</sub> | <sub>Faster (optimized)</sub> |
+| <sub>Use Case</sub> | <sub>Complex algorithms, control</sub> | <sub>SQL-like operations</sub> |
 
 ---
 
@@ -237,38 +237,38 @@ result3 = frequent_rdd.filter(lambda x: x > 50).count()
 
 ### Transformations (Lazy)
 
-| Operation | Input → Output | Description | Shuffle? |
+| <sub>Operation</sub> | <sub>Input → Output</sub> | <sub>Description</sub> | <sub>Shuffle?</sub> |
 |-----------|----------------|-------------|----------|
-| `map(f)` | RDD[T] → RDD[U] | Apply f to each element | No |
-| `flatMap(f)` | RDD[T] → RDD[U] | Apply f and flatten | No |
-| `filter(f)` | RDD[T] → RDD[T] | Keep elements where f(x) = true | No |
-| `mapPartitions(f)` | RDD[T] → RDD[U] | Apply f to entire partition | No |
-| `distinct()` | RDD[T] → RDD[T] | Remove duplicates | Yes |
-| `union(rdd2)` | RDD[T] → RDD[T] | Combine RDDs | No |
-| `intersection(rdd2)` | RDD[T] → RDD[T] | Common elements | Yes |
-| `subtract(rdd2)` | RDD[T] → RDD[T] | Elements in RDD1 not in RDD2 | Yes |
-| `reduceByKey(f)` | RDD[(K,V)] → RDD[(K,V)] | Merge values per key | Yes |
-| `groupByKey()` | RDD[(K,V)] → RDD[(K,Iterable[V])] | Group values per key | Yes |
-| `sortByKey()` | RDD[(K,V)] → RDD[(K,V)] | Sort by key | Yes |
-| `join(rdd2)` | RDD[(K,V)] → RDD[(K,(V,W))] | Inner join | Yes |
-| `cogroup(rdd2)` | RDD[(K,V)] → RDD[(K,(Iter[V],Iter[W]))] | Group both RDDs | Yes |
-| `repartition(n)` | RDD[T] → RDD[T] | Change partitions | Yes |
-| `coalesce(n)` | RDD[T] → RDD[T] | Reduce partitions | Maybe |
+| <sub>`map(f)`</sub> | <sub>RDD[T] → RDD[U]</sub> | <sub>Apply f to each element</sub> | <sub>No</sub> |
+| <sub>`flatMap(f)`</sub> | <sub>RDD[T] → RDD[U]</sub> | <sub>Apply f and flatten</sub> | <sub>No</sub> |
+| <sub>`filter(f)`</sub> | <sub>RDD[T] → RDD[T]</sub> | <sub>Keep elements where f(x) = true</sub> | <sub>No</sub> |
+| <sub>`mapPartitions(f)`</sub> | <sub>RDD[T] → RDD[U]</sub> | <sub>Apply f to entire partition</sub> | <sub>No</sub> |
+| <sub>`distinct()`</sub> | <sub>RDD[T] → RDD[T]</sub> | <sub>Remove duplicates</sub> | <sub>Yes</sub> |
+| <sub>`union(rdd2)`</sub> | <sub>RDD[T] → RDD[T]</sub> | <sub>Combine RDDs</sub> | <sub>No</sub> |
+| <sub>`intersection(rdd2)`</sub> | <sub>RDD[T] → RDD[T]</sub> | <sub>Common elements</sub> | <sub>Yes</sub> |
+| <sub>`subtract(rdd2)`</sub> | <sub>RDD[T] → RDD[T]</sub> | <sub>Elements in RDD1 not in RDD2</sub> | <sub>Yes</sub> |
+| <sub>`reduceByKey(f)`</sub> | <sub>RDD[(K,V)] → RDD[(K,V)]</sub> | <sub>Merge values per key</sub> | <sub>Yes</sub> |
+| <sub>`groupByKey()`</sub> | <sub>RDD[(K,V)] → RDD[(K,Iterable[V])]</sub> | <sub>Group values per key</sub> | <sub>Yes</sub> |
+| <sub>`sortByKey()`</sub> | <sub>RDD[(K,V)] → RDD[(K,V)]</sub> | <sub>Sort by key</sub> | <sub>Yes</sub> |
+| <sub>`join(rdd2)`</sub> | <sub>RDD[(K,V)] → RDD[(K,(V,W))]</sub> | <sub>Inner join</sub> | <sub>Yes</sub> |
+| <sub>`cogroup(rdd2)`</sub> | <sub>RDD[(K,V)] → RDD[(K,(Iter[V],Iter[W]))]</sub> | <sub>Group both RDDs</sub> | <sub>Yes</sub> |
+| <sub>`repartition(n)`</sub> | <sub>RDD[T] → RDD[T]</sub> | <sub>Change partitions</sub> | <sub>Yes</sub> |
+| <sub>`coalesce(n)`</sub> | <sub>RDD[T] → RDD[T]</sub> | <sub>Reduce partitions</sub> | <sub>Maybe</sub> |
 
 ### Actions (Eager)
 
-| Operation | Output | Description |
+| <sub>Operation</sub> | <sub>Output</sub> | <sub>Description</sub> |
 |-----------|--------|-------------|
-| `collect()` | Array[T] | Return all elements to driver |
-| `count()` | Long | Count elements |
-| `take(n)` | Array[T] | Return first n elements |
-| `top(n)` | Array[T] | Return largest n elements |
-| `takeOrdered(n)` | Array[T] | Return smallest n elements |
-| `reduce(f)` | T | Combine elements with f |
-| `fold(zero, f)` | T | Like reduce with initial value |
-| `aggregate(zero, seq, comb)` | U | Flexible aggregation |
-| `foreach(f)` | Unit | Apply f to each element |
-| `saveAsTextFile(path)` | Unit | Write to text file |
+| <sub>`collect()`</sub> | <sub>Array[T]</sub> | <sub>Return all elements to driver</sub> |
+| <sub>`count()`</sub> | <sub>Long</sub> | <sub>Count elements</sub> |
+| <sub>`take(n)`</sub> | <sub>Array[T]</sub> | <sub>Return first n elements</sub> |
+| <sub>`top(n)`</sub> | <sub>Array[T]</sub> | <sub>Return largest n elements</sub> |
+| <sub>`takeOrdered(n)`</sub> | <sub>Array[T]</sub> | <sub>Return smallest n elements</sub> |
+| <sub>`reduce(f)`</sub> | <sub>T</sub> | <sub>Combine elements with f</sub> |
+| <sub>`fold(zero, f)`</sub> | <sub>T</sub> | <sub>Like reduce with initial value</sub> |
+| <sub>`aggregate(zero, seq, comb)`</sub> | <sub>U</sub> | <sub>Flexible aggregation</sub> |
+| <sub>`foreach(f)`</sub> | <sub>Unit</sub> | <sub>Apply f to each element</sub> |
+| <sub>`saveAsTextFile(path)`</sub> | <sub>Unit</sub> | <sub>Write to text file</sub> |
 
 ---
 
