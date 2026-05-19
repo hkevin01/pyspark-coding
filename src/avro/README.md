@@ -83,15 +83,15 @@ spark = SparkSession.builder \
 
 ## 📊 Avro vs Other Formats
 
-| Feature | Avro | Parquet | ORC | JSON |
+| <sub>Feature</sub> | <sub>Avro</sub> | <sub>Parquet</sub> | <sub>ORC</sub> | <sub>JSON</sub> |
 |---------|------|---------|-----|------|
-| **Storage** | Row-based | Columnar | Columnar | Row-based |
-| **Compression** | Good | Excellent | Excellent | Poor |
-| **Streaming** | ✅ Excellent | ❌ Poor | ❌ Poor | ✅ Good |
-| **Analytics** | ❌ Poor | ✅ Excellent | ✅ Excellent | ❌ Poor |
-| **Schema Evolution** | ✅ Excellent | ✅ Good | ✅ Good | ❌ None |
-| **Human Readable** | ❌ Binary | ❌ Binary | ❌ Binary | ✅ Yes |
-| **Size** | Medium | Small | Small | Large |
+| <sub>**Storage**</sub> | <sub>Row-based</sub> | <sub>Columnar</sub> | <sub>Columnar</sub> | <sub>Row-based</sub> |
+| <sub>**Compression**</sub> | <sub>Good</sub> | <sub>Excellent</sub> | <sub>Excellent</sub> | <sub>Poor</sub> |
+| <sub>**Streaming**</sub> | <sub>✅ Excellent</sub> | <sub>❌ Poor</sub> | <sub>❌ Poor</sub> | <sub>✅ Good</sub> |
+| <sub>**Analytics**</sub> | <sub>❌ Poor</sub> | <sub>✅ Excellent</sub> | <sub>✅ Excellent</sub> | <sub>❌ Poor</sub> |
+| <sub>**Schema Evolution**</sub> | <sub>✅ Excellent</sub> | <sub>✅ Good</sub> | <sub>✅ Good</sub> | <sub>❌ None</sub> |
+| <sub>**Human Readable**</sub> | <sub>❌ Binary</sub> | <sub>❌ Binary</sub> | <sub>❌ Binary</sub> | <sub>✅ Yes</sub> |
+| <sub>**Size**</sub> | <sub>Medium</sub> | <sub>Small</sub> | <sub>Small</sub> | <sub>Large</sub> |
 
 ## 🎯 When to Use Avro
 
