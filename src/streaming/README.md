@@ -112,26 +112,26 @@ query = df.writeStream \
 
 Where streaming data comes from:
 
-| Source | Description | Use Case |
+| <sub>Source</sub> | <sub>Description</sub> | <sub>Use Case</sub> |
 |--------|-------------|----------|
-| **Socket** | TCP socket | Testing, debugging |
-| **File** | CSV, JSON, Parquet, Text | File-based ingestion |
-| **Kafka** | Apache Kafka topics | Production streaming |
-| **Rate** | Synthetic data generation | Performance testing |
-| **Memory** | In-memory table | Testing |
+| <sub>**Socket**</sub> | <sub>TCP socket</sub> | <sub>Testing, debugging</sub> |
+| <sub>**File**</sub> | <sub>CSV, JSON, Parquet, Text</sub> | <sub>File-based ingestion</sub> |
+| <sub>**Kafka**</sub> | <sub>Apache Kafka topics</sub> | <sub>Production streaming</sub> |
+| <sub>**Rate**</sub> | <sub>Synthetic data generation</sub> | <sub>Performance testing</sub> |
+| <sub>**Memory**</sub> | <sub>In-memory table</sub> | <sub>Testing</sub> |
 
 ### Sinks
 
 Where streaming data is written:
 
-| Sink | Description | Output Modes |
+| <sub>Sink</sub> | <sub>Description</sub> | <sub>Output Modes</sub> |
 |------|-------------|--------------|
-| **Console** | Print to console | Append, Complete, Update |
-| **File** | Parquet, JSON, CSV, ORC | Append |
-| **Kafka** | Write to Kafka topic | Append, Complete, Update |
-| **Memory** | In-memory table | Append, Complete |
-| **ForeachBatch** | Custom processing | All modes |
-| **Foreach** | Per-row processing | Append |
+| <sub>**Console**</sub> | <sub>Print to console</sub> | <sub>Append, Complete, Update</sub> |
+| <sub>**File**</sub> | <sub>Parquet, JSON, CSV, ORC</sub> | <sub>Append</sub> |
+| <sub>**Kafka**</sub> | <sub>Write to Kafka topic</sub> | <sub>Append, Complete, Update</sub> |
+| <sub>**Memory**</sub> | <sub>In-memory table</sub> | <sub>Append, Complete</sub> |
+| <sub>**ForeachBatch**</sub> | <sub>Custom processing</sub> | <sub>All modes</sub> |
+| <sub>**Foreach**</sub> | <sub>Per-row processing</sub> | <sub>Append</sub> |
 
 ### Output Modes
 
