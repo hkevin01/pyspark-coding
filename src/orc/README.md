@@ -77,27 +77,27 @@ spark = SparkSession.builder \
 
 ### Compression Codecs
 
-| Codec | Speed | Compression Ratio | Use Case |
+| <sub>Codec</sub> | <sub>Speed</sub> | <sub>Compression Ratio</sub> | <sub>Use Case</sub> |
 |-------|-------|-------------------|----------|
-| none | Fastest | 1x (no compression) | Fast I/O required |
-| snappy | Fast | 2-3x | Hot data, frequent access |
-| **zlib** | Medium | **4-6x** | **Default, best general use** |
-| lzo | Fast | 2-4x | Balance of speed/compression |
+| <sub>none</sub> | <sub>Fastest</sub> | <sub>1x (no compression)</sub> | <sub>Fast I/O required</sub> |
+| <sub>snappy</sub> | <sub>Fast</sub> | <sub>2-3x</sub> | <sub>Hot data, frequent access</sub> |
+| <sub>**zlib**</sub> | <sub>Medium</sub> | <sub>**4-6x**</sub> | <sub>**Default, best general use**</sub> |
+| <sub>lzo</sub> | <sub>Fast</sub> | <sub>2-4x</sub> | <sub>Balance of speed/compression</sub> |
 
 **Recommendation**: Use **zlib** (default) for best compression.
 
 ## 📊 ORC vs Parquet vs Avro
 
-| Feature | ORC | Parquet | Avro |
+| <sub>Feature</sub> | <sub>ORC</sub> | <sub>Parquet</sub> | <sub>Avro</sub> |
 |---------|-----|---------|------|
-| **Storage Type** | Columnar | Columnar | Row-based |
-| **Compression** | ✅ Excellent (zlib) | ✅ Excellent (snappy) | Good |
-| **ACID Support** | ✅ Yes (with Hive) | ❌ No | ❌ No |
-| **Bloom Filters** | ✅ Built-in | ❌ No | ❌ No |
-| **Hive Integration** | ✅ Best | Good | Good |
-| **Streaming** | ❌ Poor | ❌ Poor | ✅ Excellent |
-| **Read Speed** | Very Fast | Very Fast | Medium |
-| **File Size** | Smallest | Small | Medium |
+| <sub>**Storage Type**</sub> | <sub>Columnar</sub> | <sub>Columnar</sub> | <sub>Row-based</sub> |
+| <sub>**Compression**</sub> | <sub>✅ Excellent (zlib)</sub> | <sub>✅ Excellent (snappy)</sub> | <sub>Good</sub> |
+| <sub>**ACID Support**</sub> | <sub>✅ Yes (with Hive)</sub> | <sub>❌ No</sub> | <sub>❌ No</sub> |
+| <sub>**Bloom Filters**</sub> | <sub>✅ Built-in</sub> | <sub>❌ No</sub> | <sub>❌ No</sub> |
+| <sub>**Hive Integration**</sub> | <sub>✅ Best</sub> | <sub>Good</sub> | <sub>Good</sub> |
+| <sub>**Streaming**</sub> | <sub>❌ Poor</sub> | <sub>❌ Poor</sub> | <sub>✅ Excellent</sub> |
+| <sub>**Read Speed**</sub> | <sub>Very Fast</sub> | <sub>Very Fast</sub> | <sub>Medium</sub> |
+| <sub>**File Size**</sub> | <sub>Smallest</sub> | <sub>Small</sub> | <sub>Medium</sub> |
 
 ## 🎯 When to Use ORC
 
@@ -338,22 +338,22 @@ df.write.format("orc").option("compression", "zlib").save(path)
 
 ### Storage Efficiency (10 GB CSV dataset)
 
-| Format | Size | Compression Ratio | Time to Write |
+| <sub>Format</sub> | <sub>Size</sub> | <sub>Compression Ratio</sub> | <sub>Time to Write</sub> |
 |--------|------|-------------------|---------------|
-| CSV | 10.0 GB | 1x | 30s |
-| JSON | 8.5 GB | 1.2x | 35s |
-| Avro (snappy) | 2.8 GB | 3.6x | 45s |
-| Parquet (snappy) | 1.8 GB | 5.5x | 50s |
-| **ORC (zlib)** | **1.5 GB** | **6.7x** | 60s |
+| <sub>CSV</sub> | <sub>10.0 GB</sub> | <sub>1x</sub> | <sub>30s</sub> |
+| <sub>JSON</sub> | <sub>8.5 GB</sub> | <sub>1.2x</sub> | <sub>35s</sub> |
+| <sub>Avro (snappy)</sub> | <sub>2.8 GB</sub> | <sub>3.6x</sub> | <sub>45s</sub> |
+| <sub>Parquet (snappy)</sub> | <sub>1.8 GB</sub> | <sub>5.5x</sub> | <sub>50s</sub> |
+| <sub>**ORC (zlib)**</sub> | <sub>**1.5 GB**</sub> | <sub>**6.7x**</sub> | <sub>60s</sub> |
 
 ### Query Performance (Filtered aggregation)
 
-| Format | Time | Data Scanned |
+| <sub>Format</sub> | <sub>Time</sub> | <sub>Data Scanned</sub> |
 |--------|------|--------------|
-| CSV | 120s | 10 GB |
-| Parquet | 8s | 0.5 GB |
-| ORC | **5s** | **0.3 GB** |
-| ORC + Bloom | **2s** | **0.1 GB** |
+| <sub>CSV</sub> | <sub>120s</sub> | <sub>10 GB</sub> |
+| <sub>Parquet</sub> | <sub>8s</sub> | <sub>0.5 GB</sub> |
+| <sub>ORC</sub> | <sub>**5s**</sub> | <sub>**0.3 GB**</sub> |
+| <sub>ORC + Bloom</sub> | <sub>**2s**</sub> | <sub>**0.1 GB**</sub> |
 
 *Results with bloom filters and predicate pushdown*
 
