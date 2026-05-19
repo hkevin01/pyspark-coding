@@ -126,18 +126,18 @@ python 05_missing_data.py
 
 ### Key Differences Highlighted
 
-| Concept | Pandas | PySpark |
+| <sub>Concept</sub> | <sub>Pandas</sub> | <sub>PySpark</sub> |
 |---------|--------|---------|
-| **Execution** | Eager (immediate) | Lazy (optimized) |
-| **Import** | `import pandas as pd` | `from pyspark.sql import functions as F` |
-| **View Data** | `df.head()` | `df.show()` |
-| **Filter** | `df[df['col'] > 5]` | `df.filter(F.col('col') > 5)` |
-| **Select** | `df[['col1', 'col2']]` | `df.select('col1', 'col2')` |
-| **Add Column** | `df['new'] = ...` | `df.withColumn('new', ...)` |
-| **GroupBy** | `df.groupby('col').sum()` | `df.groupBy('col').agg(F.sum(...))` |
-| **Join** | `pd.merge(df1, df2)` | `df1.join(df2)` |
-| **Null Handling** | `df.fillna()` | `df.na.fill()` |
-| **String Ops** | `df['col'].str.upper()` | `F.upper('col')` |
+| <sub>**Execution**</sub> | <sub>Eager (immediate)</sub> | <sub>Lazy (optimized)</sub> |
+| <sub>**Import**</sub> | <sub>`import pandas as pd`</sub> | <sub>`from pyspark.sql import functions as F`</sub> |
+| <sub>**View Data**</sub> | <sub>`df.head()`</sub> | <sub>`df.show()`</sub> |
+| <sub>**Filter**</sub> | <sub>`df[df['col'] > 5]`</sub> | <sub>`df.filter(F.col('col') > 5)`</sub> |
+| <sub>**Select**</sub> | <sub>`df[['col1', 'col2']]`</sub> | <sub>`df.select('col1', 'col2')`</sub> |
+| <sub>**Add Column**</sub> | <sub>`df['new'] = ...`</sub> | <sub>`df.withColumn('new', ...)`</sub> |
+| <sub>**GroupBy**</sub> | <sub>`df.groupby('col').sum()`</sub> | <sub>`df.groupBy('col').agg(F.sum(...))`</sub> |
+| <sub>**Join**</sub> | <sub>`pd.merge(df1, df2)`</sub> | <sub>`df1.join(df2)`</sub> |
+| <sub>**Null Handling**</sub> | <sub>`df.fillna()`</sub> | <sub>`df.na.fill()`</sub> |
+| <sub>**String Ops**</sub> | <sub>`df['col'].str.upper()`</sub> | <sub>`F.upper('col')`</sub> |
 
 ---
 
