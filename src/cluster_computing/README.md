@@ -242,12 +242,12 @@ spark = SparkSession.builder \
 
 ### Data Size → Cluster Size
 
-| Data Size | Executors | Cores/Executor | Memory/Executor | Total Cores |
+| <sub>Data Size</sub> | <sub>Executors</sub> | <sub>Cores/Executor</sub> | <sub>Memory/Executor</sub> | <sub>Total Cores</sub> |
 |-----------|-----------|----------------|-----------------|-------------|
-| 10 GB     | 2-3       | 2-4            | 4-8 GB          | 4-12        |
-| 100 GB    | 5-10      | 4-8            | 8-16 GB         | 20-80       |
-| 1 TB      | 20-50     | 4-8            | 16-32 GB        | 80-400      |
-| 10 TB     | 100-200   | 4-8            | 32-64 GB        | 400-1600    |
+| <sub>10 GB</sub> | <sub>2-3</sub> | <sub>2-4</sub> | <sub>4-8 GB</sub> | <sub>4-12</sub> |
+| <sub>100 GB</sub> | <sub>5-10</sub> | <sub>4-8</sub> | <sub>8-16 GB</sub> | <sub>20-80</sub> |
+| <sub>1 TB</sub> | <sub>20-50</sub> | <sub>4-8</sub> | <sub>16-32 GB</sub> | <sub>80-400</sub> |
+| <sub>10 TB</sub> | <sub>100-200</sub> | <sub>4-8</sub> | <sub>32-64 GB</sub> | <sub>400-1600</sub> |
 
 ### Partition Guidelines
 
