@@ -473,16 +473,16 @@ spark-submit --master yarn my_etl.py
 
 ## Summary: PyCharm's PySpark Superpowers
 
-| Feature | Pandas (Jupyter OK) | PySpark (Need PyCharm) |
+| <sub>Feature</sub> | <sub>Pandas (Jupyter OK)</sub> | <sub>PySpark (Need PyCharm)</sub> |
 |---------|---------------------|------------------------|
-| **API Complexity** | ~200 methods | 500+ methods ✅ |
-| **Distributed Debugging** | Not needed | Critical ✅ |
-| **Cluster Config** | None | 100+ options ✅ |
-| **Remote Development** | Not needed | Essential ✅ |
-| **Environment Vars** | None | 10+ required ✅ |
-| **Database Integration** | Rarely | Hive/JDBC common ✅ |
-| **Lazy Evaluation** | No | Yes (hard to debug) ✅ |
-| **Production Code** | Scripts | Applications ✅ |
+| <sub>**API Complexity**</sub> | <sub>~200 methods</sub> | <sub>500+ methods ✅</sub> |
+| <sub>**Distributed Debugging**</sub> | <sub>Not needed</sub> | <sub>Critical ✅</sub> |
+| <sub>**Cluster Config**</sub> | <sub>None</sub> | <sub>100+ options ✅</sub> |
+| <sub>**Remote Development**</sub> | <sub>Not needed</sub> | <sub>Essential ✅</sub> |
+| <sub>**Environment Vars**</sub> | <sub>None</sub> | <sub>10+ required ✅</sub> |
+| <sub>**Database Integration**</sub> | <sub>Rarely</sub> | <sub>Hive/JDBC common ✅</sub> |
+| <sub>**Lazy Evaluation**</sub> | <sub>No</sub> | <sub>Yes (hard to debug) ✅</sub> |
+| <sub>**Production Code**</sub> | <sub>Scripts</sub> | <sub>Applications ✅</sub> |
 
 ---
 
