@@ -378,13 +378,13 @@ groups:
 
 ### **📈 Performance Benchmarks (Real Measurements)**
 
-| Implementation | Dataset | Before | After | Speedup |
+| <sub>Implementation</sub> | <sub>Dataset</sub> | <sub>Before</sub> | <sub>After</sub> | <sub>Speedup</sub> |
 |----------------|---------|--------|-------|---------|
-| FORTRAN Monte Carlo | 10M points | 20 minutes | **2 seconds** | **600x** |
-| COBOL Batch Processing | 1M records | 8 hours | **5 minutes** | **96x** |
-| Delta Lake Time Travel | Query v0 | 45 seconds | **0.05 seconds** | **900x** |
-| ML Model Deployment | 1M predictions | No broadcast: 23 days | **28 seconds** | **71,428x** |
-| Airflow vs Manual | Daily ETL | 4 hours manual | **15 min automated** | **16x** |
+| <sub>FORTRAN Monte Carlo</sub> | <sub>10M points</sub> | <sub>20 minutes</sub> | <sub>**2 seconds**</sub> | <sub>**600x**</sub> |
+| <sub>COBOL Batch Processing</sub> | <sub>1M records</sub> | <sub>8 hours</sub> | <sub>**5 minutes**</sub> | <sub>**96x**</sub> |
+| <sub>Delta Lake Time Travel</sub> | <sub>Query v0</sub> | <sub>45 seconds</sub> | <sub>**0.05 seconds**</sub> | <sub>**900x**</sub> |
+| <sub>ML Model Deployment</sub> | <sub>1M predictions</sub> | <sub>No broadcast: 23 days</sub> | <sub>**28 seconds**</sub> | <sub>**71,428x**</sub> |
+| <sub>Airflow vs Manual</sub> | <sub>Daily ETL</sub> | <sub>4 hours manual</sub> | <sub>**15 min automated**</sub> | <sub>**16x**</sub> |
 
 ---
 
@@ -456,15 +456,15 @@ This is the **most comprehensive, production-ready PySpark learning environment*
 
 ### **What Makes This Project Unique**
 
-| Feature | Other Resources | This Project ✨ |
+| <sub>Feature</sub> | <sub>Other Resources</sub> | <sub>This Project ✨</sub> |
 |---------|----------------|-----------------|
-| **Code Quality** | Stubs & TODOs | **8,000+ lines of real, tested code** |
-| **Legacy Modernization** | Not covered | **5 complete examples (COBOL, FORTRAN, etc.)** |
-| **v2.0 Features** | Planned | **100% complete (Delta Lake, MLflow, Airflow)** |
-| **Algorithms** | Simple examples | **40+ working algorithms (Monte Carlo, FFT, ODE)** |
-| **Scale** | Toy datasets | **TB+ patterns, 10-100x speedups demonstrated** |
-| **ML Integration** | Separate | **Production model deployment in pipelines** |
-| **Real-World Patterns** | Basic | **ROI calculations, cost analysis, benchmarks** |
+| <sub>**Code Quality**</sub> | <sub>Stubs & TODOs</sub> | <sub>**8,000+ lines of real, tested code**</sub> |
+| <sub>**Legacy Modernization**</sub> | <sub>Not covered</sub> | <sub>**5 complete examples (COBOL, FORTRAN, etc.)**</sub> |
+| <sub>**v2.0 Features**</sub> | <sub>Planned</sub> | <sub>**100% complete (Delta Lake, MLflow, Airflow)**</sub> |
+| <sub>**Algorithms**</sub> | <sub>Simple examples</sub> | <sub>**40+ working algorithms (Monte Carlo, FFT, ODE)**</sub> |
+| <sub>**Scale**</sub> | <sub>Toy datasets</sub> | <sub>**TB+ patterns, 10-100x speedups demonstrated**</sub> |
+| <sub>**ML Integration**</sub> | <sub>Separate</sub> | <sub>**Production model deployment in pipelines**</sub> |
+| <sub>**Real-World Patterns**</sub> | <sub>Basic</sub> | <sub>**ROI calculations, cost analysis, benchmarks**</sub> |
 
 ### **Key Learning Outcomes**
 
@@ -503,14 +503,14 @@ graph LR
 
 ### **What Makes This Project Unique**
 
-| Feature | Traditional Tutorials | This Project |
+| <sub>Feature</sub> | <sub>Traditional Tutorials</sub> | <sub>This Project</sub> |
 |---------|----------------------|--------------|
-| **Scale** | Toy datasets (< 1GB) | Production patterns for TB+ data |
-| **ML Integration** | Separate from ETL | PyTorch models embedded in pipelines |
-| **Architecture** | Single scripts | Modular, testable components |
-| **Deployment** | Local only | Docker, cloud-ready configurations |
-| **Real-World Patterns** | Basic examples | Production-grade UDFs, streaming, fault tolerance |
-| **Interview Focus** | Generic coding | Specific to data engineering interviews |
+| <sub>**Scale**</sub> | <sub>Toy datasets (< 1GB)</sub> | <sub>Production patterns for TB+ data</sub> |
+| <sub>**ML Integration**</sub> | <sub>Separate from ETL</sub> | <sub>PyTorch models embedded in pipelines</sub> |
+| <sub>**Architecture**</sub> | <sub>Single scripts</sub> | <sub>Modular, testable components</sub> |
+| <sub>**Deployment**</sub> | <sub>Local only</sub> | <sub>Docker, cloud-ready configurations</sub> |
+| <sub>**Real-World Patterns**</sub> | <sub>Basic examples</sub> | <sub>Production-grade UDFs, streaming, fault tolerance</sub> |
+| <sub>**Interview Focus**</sub> | <sub>Generic coding</sub> | <sub>Specific to data engineering interviews</sub> |
 
 ### **Core Learning Objectives**
 
@@ -802,14 +802,14 @@ df_cells = df_microscopy \
 
 ### **Why PySpark Matters for Research**
 
-| Traditional Approach | PySpark Approach | Impact |
+| <sub>Traditional Approach</sub> | <sub>PySpark Approach</sub> | <sub>Impact</sub> |
 |----------------------|------------------|--------|
-| **Single Machine** | **1000-Node Cluster** | **50-100× Faster** |
-| Process 100 GB in 8 hours | Process 10 TB in 2 hours | Enables population-scale studies |
-| Limited to memory (64 GB) | Unlimited scale (PB+) | Analyze entire datasets, not samples |
-| GPU limited to 1-2 cards | 1000+ GPUs in parallel | Real-time inference on millions of images |
-| Days to run experiments | Minutes to iterate | 10× more experiments = faster discoveries |
-| Manual pipeline scripts | Production-grade frameworks | Reproducible, fault-tolerant research |
+| <sub>**Single Machine**</sub> | <sub>**1000-Node Cluster**</sub> | <sub>**50-100× Faster**</sub> |
+| <sub>Process 100 GB in 8 hours</sub> | <sub>Process 10 TB in 2 hours</sub> | <sub>Enables population-scale studies</sub> |
+| <sub>Limited to memory (64 GB)</sub> | <sub>Unlimited scale (PB+)</sub> | <sub>Analyze entire datasets, not samples</sub> |
+| <sub>GPU limited to 1-2 cards</sub> | <sub>1000+ GPUs in parallel</sub> | <sub>Real-time inference on millions of images</sub> |
+| <sub>Days to run experiments</sub> | <sub>Minutes to iterate</sub> | <sub>10× more experiments = faster discoveries</sub> |
+| <sub>Manual pipeline scripts</sub> | <sub>Production-grade frameworks</sub> | <sub>Reproducible, fault-tolerant research</sub> |
 
 **Performance Scaling Examples:**
 - Variant calling: 24 hours → 20 minutes per genome (72× speedup)
@@ -994,15 +994,15 @@ sequenceDiagram
 
 ### **Technology Comparison Matrix**
 
-| Capability | Pandas | PySpark | PyTorch | This Project |
+| <sub>Capability</sub> | <sub>Pandas</sub> | <sub>PySpark</sub> | <sub>PyTorch</sub> | <sub>This Project</sub> |
 |------------|--------|---------|---------|--------------|
-| **Data Scale** | < 10GB | Unlimited | N/A | ✅ Unlimited |
-| **Distributed** | ❌ No | ✅ Yes | ❌ No | ✅ Yes |
-| **ML Models** | ⚠️ Limited | ⚠️ MLlib only | ✅ Full DL | ✅ Full DL in ETL |
-| **Streaming** | ❌ No | ✅ Yes | ❌ No | ✅ Yes + ML |
-| **Fault Tolerance** | ❌ No | ✅ Yes | ❌ No | ✅ Yes |
-| **GPU Support** | ❌ No | ⚠️ Limited | ✅ Yes | ✅ Yes (via UDFs) |
-| **Production Ready** | ⚠️ Small data | ✅ Yes | ✅ Yes | ✅ Yes |
+| <sub>**Data Scale**</sub> | <sub>< 10GB</sub> | <sub>Unlimited</sub> | <sub>N/A</sub> | <sub>✅ Unlimited</sub> |
+| <sub>**Distributed**</sub> | <sub>❌ No</sub> | <sub>✅ Yes</sub> | <sub>❌ No</sub> | <sub>✅ Yes</sub> |
+| <sub>**ML Models**</sub> | <sub>⚠️ Limited</sub> | <sub>⚠️ MLlib only</sub> | <sub>✅ Full DL</sub> | <sub>✅ Full DL in ETL</sub> |
+| <sub>**Streaming**</sub> | <sub>❌ No</sub> | <sub>✅ Yes</sub> | <sub>❌ No</sub> | <sub>✅ Yes + ML</sub> |
+| <sub>**Fault Tolerance**</sub> | <sub>❌ No</sub> | <sub>✅ Yes</sub> | <sub>❌ No</sub> | <sub>✅ Yes</sub> |
+| <sub>**GPU Support**</sub> | <sub>❌ No</sub> | <sub>⚠️ Limited</sub> | <sub>✅ Yes</sub> | <sub>✅ Yes (via UDFs)</sub> |
+| <sub>**Production Ready**</sub> | <sub>⚠️ Small data</sub> | <sub>✅ Yes</sub> | <sub>✅ Yes</sub> | <sub>✅ Yes</sub> |
 
 ---
 
@@ -1019,23 +1019,23 @@ We've added a comprehensive **Cluster Computing** package with 15 production-gra
 
 ### **📦 Package Overview**
 
-| Example | Topic | Performance Gain | Use Case |
+| <sub>Example</sub> | <sub>Topic</sub> | <sub>Performance Gain</sub> | <sub>Use Case</sub> |
 |---------|-------|------------------|----------|
-| **01** | Cluster Setup | N/A | YARN, Kubernetes, Standalone configurations |
-| **02** | Data Partitioning | 2-5x speedup | Optimize parallelism, handle data skew |
-| **03** | Distributed Joins | 2-3x speedup | Broadcast joins, skew-resilient joining |
-| **04** | Aggregations at Scale | 10-100x speedup | Window functions, HyperLogLog approximate aggs |
-| **05** | Fault Tolerance | Saves hours | Checkpointing, lineage management, recovery |
-| **06** | **GPU-Accelerated UDFs** | **10-100x speedup** | PyTorch/TensorFlow inference, CuPy kernels |
-| **07** | Resource Management | 30-50% cost savings | Memory tuning, dynamic allocation, executor sizing |
-| **08** | Shuffle Optimization | 2-10x speedup | Minimize shuffles, AQE, bucketing strategies |
-| **09** | Cluster Monitoring | Faster debugging | Spark UI mastery, metrics interpretation |
-| **10** | **YARN Cluster Deployment** | Production-ready | Enterprise Hadoop clusters, queue management |
-| **11** | **Kubernetes Deployment** | Cloud-native | EKS/GKE/AKS deployments with YAML manifests |
-| **12** | **Standalone Cluster** | Simplest setup | On-premises, dev/test environments |
-| **13** | **Driver Responsibilities** | Interview prep | Architecture understanding, task coordination |
-| **14** | **Executor Responsibilities** | Interview prep | Task execution, caching, shuffle operations |
-| **15** | **DAG & Lazy Evaluation** | Interview prep | Query optimization, Catalyst optimizer |
+| <sub>**01**</sub> | <sub>Cluster Setup</sub> | <sub>N/A</sub> | <sub>YARN, Kubernetes, Standalone configurations</sub> |
+| <sub>**02**</sub> | <sub>Data Partitioning</sub> | <sub>2-5x speedup</sub> | <sub>Optimize parallelism, handle data skew</sub> |
+| <sub>**03**</sub> | <sub>Distributed Joins</sub> | <sub>2-3x speedup</sub> | <sub>Broadcast joins, skew-resilient joining</sub> |
+| <sub>**04**</sub> | <sub>Aggregations at Scale</sub> | <sub>10-100x speedup</sub> | <sub>Window functions, HyperLogLog approximate aggs</sub> |
+| <sub>**05**</sub> | <sub>Fault Tolerance</sub> | <sub>Saves hours</sub> | <sub>Checkpointing, lineage management, recovery</sub> |
+| <sub>**06**</sub> | <sub>**GPU-Accelerated UDFs**</sub> | <sub>**10-100x speedup**</sub> | <sub>PyTorch/TensorFlow inference, CuPy kernels</sub> |
+| <sub>**07**</sub> | <sub>Resource Management</sub> | <sub>30-50% cost savings</sub> | <sub>Memory tuning, dynamic allocation, executor sizing</sub> |
+| <sub>**08**</sub> | <sub>Shuffle Optimization</sub> | <sub>2-10x speedup</sub> | <sub>Minimize shuffles, AQE, bucketing strategies</sub> |
+| <sub>**09**</sub> | <sub>Cluster Monitoring</sub> | <sub>Faster debugging</sub> | <sub>Spark UI mastery, metrics interpretation</sub> |
+| <sub>**10**</sub> | <sub>**YARN Cluster Deployment**</sub> | <sub>Production-ready</sub> | <sub>Enterprise Hadoop clusters, queue management</sub> |
+| <sub>**11**</sub> | <sub>**Kubernetes Deployment**</sub> | <sub>Cloud-native</sub> | <sub>EKS/GKE/AKS deployments with YAML manifests</sub> |
+| <sub>**12**</sub> | <sub>**Standalone Cluster**</sub> | <sub>Simplest setup</sub> | <sub>On-premises, dev/test environments</sub> |
+| <sub>**13**</sub> | <sub>**Driver Responsibilities**</sub> | <sub>Interview prep</sub> | <sub>Architecture understanding, task coordination</sub> |
+| <sub>**14**</sub> | <sub>**Executor Responsibilities**</sub> | <sub>Interview prep</sub> | <sub>Task execution, caching, shuffle operations</sub> |
+| <sub>**15**</sub> | <sub>**DAG & Lazy Evaluation**</sub> | <sub>Interview prep</sub> | <sub>Query optimization, Catalyst optimizer</sub> |
 
 ### **🎯 Key Highlights**
 
@@ -1097,15 +1097,15 @@ This project now includes a **comprehensive 47 KB master curriculum** covering 1
 
 #### **Quick Navigation:**
 
-| Package | Guide | Topics |
+| <sub>Package</sub> | <sub>Guide</sub> | <sub>Topics</sub> |
 |---------|-------|--------|
-| **RDD Operations** | [src/rdd_operations/](src/rdd_operations/) | Transformations, actions, shuffle optimization |
-| **HDFS** | [src/hdfs/](src/hdfs/) | Architecture, blocks, replication, CLI |
-| **PyCharm** | [src/pycharm/](src/pycharm/) | IDE setup and configuration |
-| **Architecture** | [src/spark_execution_architecture/](src/spark_execution_architecture/) | DAG, schedulers, execution |
-| **Spark Session** | [src/spark_session/](src/spark_session/) | Session operations, reads, UDFs |
-| **DataFrame ETL** | [src/dataframe_etl/](src/dataframe_etl/) | All DataFrame operations |
-| **Optimization** | [src/optimization/](src/optimization/) | Performance tuning |
+| <sub>**RDD Operations**</sub> | <sub>[src/rdd_operations/](src/rdd_operations/)</sub> | <sub>Transformations, actions, shuffle optimization</sub> |
+| <sub>**HDFS**</sub> | <sub>[src/hdfs/](src/hdfs/)</sub> | <sub>Architecture, blocks, replication, CLI</sub> |
+| <sub>**PyCharm**</sub> | <sub>[src/pycharm/](src/pycharm/)</sub> | <sub>IDE setup and configuration</sub> |
+| <sub>**Architecture**</sub> | <sub>[src/spark_execution_architecture/](src/spark_execution_architecture/)</sub> | <sub>DAG, schedulers, execution</sub> |
+| <sub>**Spark Session**</sub> | <sub>[src/spark_session/](src/spark_session/)</sub> | <sub>Session operations, reads, UDFs</sub> |
+| <sub>**DataFrame ETL**</sub> | <sub>[src/dataframe_etl/](src/dataframe_etl/)</sub> | <sub>All DataFrame operations</sub> |
+| <sub>**Optimization**</sub> | <sub>[src/optimization/](src/optimization/)</sub> | <sub>Performance tuning</sub> |
 
 📖 **See also:** [CURRICULUM_COMPLETION_SUMMARY.md](CURRICULUM_COMPLETION_SUMMARY.md) for detailed learning roadmap
 
@@ -1176,14 +1176,14 @@ Understand **when to use Scala vs PySpark** with real performance benchmarks and
 
 ### **📦 Package Overview**
 
-| File | Topic | Key Insight |
+| <sub>File</sub> | <sub>Topic</sub> | <sub>Key Insight</sub> |
 |------|-------|-------------|
-| **01** | Scala Basics | Language fundamentals (85% similar to Java, 60% to Python) |
-| **02** | Spark with Scala | Native Spark API, compile-time type safety |
-| **03** | User-Defined Functions | **2-5x faster** than Python UDFs (no serialization overhead) |
-| **04** | PySpark Integration | Call Scala JARs from PySpark, best of both worlds |
-| **05** | Language Comparison | Java vs Kotlin vs Python vs Scala syntax comparison |
-| **06** | Performance Benchmarks | Real metrics: UDF performance, data processing speed |
+| <sub>**01**</sub> | <sub>Scala Basics</sub> | <sub>Language fundamentals (85% similar to Java, 60% to Python)</sub> |
+| <sub>**02**</sub> | <sub>Spark with Scala</sub> | <sub>Native Spark API, compile-time type safety</sub> |
+| <sub>**03**</sub> | <sub>User-Defined Functions</sub> | <sub>**2-5x faster** than Python UDFs (no serialization overhead)</sub> |
+| <sub>**04**</sub> | <sub>PySpark Integration</sub> | <sub>Call Scala JARs from PySpark, best of both worlds</sub> |
+| <sub>**05**</sub> | <sub>Language Comparison</sub> | <sub>Java vs Kotlin vs Python vs Scala syntax comparison</sub> |
+| <sub>**06**</sub> | <sub>Performance Benchmarks</sub> | <sub>Real metrics: UDF performance, data processing speed</sub> |
 
 ### **🎯 Key Highlights**
 
@@ -1298,15 +1298,15 @@ Leverage the **entire Python data science ecosystem** on distributed big data wi
 
 ### **📦 Package Overview**
 
-| File | Library | Performance Gain | Use Case |
+| <sub>File</sub> | <sub>Library</sub> | <sub>Performance Gain</sub> | <sub>Use Case</sub> |
 |------|---------|------------------|----------|
-| **01** | NumPy | **100x faster** than pure Python | Vectorized numerical operations |
-| **02** | Pandas | **10-20x faster** with Pandas UDFs | Data manipulation at scale |
-| **03** | Scikit-learn | Distributed ML | Training models on big data |
-| **04** | PyTorch | GPU acceleration | Deep learning inference |
-| **05** | Matplotlib & Seaborn | Publication-quality | Statistical visualizations |
-| **06** | Complete ML Pipeline | All libraries together | End-to-end customer churn prediction |
-| **07** | 🆕 All Integrations | **All 6 libraries** | Multi-modal fraud detection system |
+| <sub>**01**</sub> | <sub>NumPy</sub> | <sub>**100x faster** than pure Python</sub> | <sub>Vectorized numerical operations</sub> |
+| <sub>**02**</sub> | <sub>Pandas</sub> | <sub>**10-20x faster** with Pandas UDFs</sub> | <sub>Data manipulation at scale</sub> |
+| <sub>**03**</sub> | <sub>Scikit-learn</sub> | <sub>Distributed ML</sub> | <sub>Training models on big data</sub> |
+| <sub>**04**</sub> | <sub>PyTorch</sub> | <sub>GPU acceleration</sub> | <sub>Deep learning inference</sub> |
+| <sub>**05**</sub> | <sub>Matplotlib & Seaborn</sub> | <sub>Publication-quality</sub> | <sub>Statistical visualizations</sub> |
+| <sub>**06**</sub> | <sub>Complete ML Pipeline</sub> | <sub>All libraries together</sub> | <sub>End-to-end customer churn prediction</sub> |
+| <sub>**07**</sub> | <sub>🆕 All Integrations</sub> | <sub>**All 6 libraries**</sub> | <sub>Multi-modal fraud detection system</sub> |
 
 ### **🎯 Key Highlights**
 
@@ -2362,14 +2362,14 @@ Model Performance:
 
 This is PySpark's **killer feature** - something Scala Spark cannot match:
 
-| Library | PySpark | Scala Spark | Winner |
+| <sub>Library</sub> | <sub>PySpark</sub> | <sub>Scala Spark</sub> | <sub>Winner</sub> |
 |---------|---------|-------------|--------|
-| NumPy | ✅ Native | ❌ Breeze (limited) | **PySpark** |
-| Pandas | ✅ Pandas UDFs | ❌ None | **PySpark** |
-| Scikit-learn | ✅ Full library | ❌ Spark MLlib only | **PySpark** |
-| PyTorch | ✅ Native | ❌ Complex integration | **PySpark** |
-| Matplotlib/Seaborn | ✅ Native | ❌ Limited options | **PySpark** |
-| **Ecosystem Size** | **350K+ packages** | **~15K libraries** | **PySpark** |
+| <sub>NumPy</sub> | <sub>✅ Native</sub> | <sub>❌ Breeze (limited)</sub> | <sub>**PySpark**</sub> |
+| <sub>Pandas</sub> | <sub>✅ Pandas UDFs</sub> | <sub>❌ None</sub> | <sub>**PySpark**</sub> |
+| <sub>Scikit-learn</sub> | <sub>✅ Full library</sub> | <sub>❌ Spark MLlib only</sub> | <sub>**PySpark**</sub> |
+| <sub>PyTorch</sub> | <sub>✅ Native</sub> | <sub>❌ Complex integration</sub> | <sub>**PySpark**</sub> |
+| <sub>Matplotlib/Seaborn</sub> | <sub>✅ Native</sub> | <sub>❌ Limited options</sub> | <sub>**PySpark**</sub> |
+| <sub>**Ecosystem Size**</sub> | <sub>**350K+ packages**</sub> | <sub>**~15K libraries**</sub> | <sub>**PySpark**</sub> |
 
 **Bottom Line:** For data science and ML workloads, PySpark provides access to the world's largest data science ecosystem. Scala's 2-5x UDF performance advantage rarely outweighs this.
 
@@ -2440,12 +2440,12 @@ Production PySpark jobs fail silently due to:
 
 **4 comprehensive modules covering 50+ dangerous patterns:**
 
-| File | Lines | Real-World Failures |
+| <sub>File</sub> | <sub>Lines</sub> | <sub>Real-World Failures</sub> |
 |------|-------|---------------------|
-| `01_closure_serialization.py` | 527 | File handles, locks, instance methods, late binding |
-| `02_lazy_evaluation.py` | 665 | Multiple recomputations, accumulator double-counting |
-| `03_data_skew_partitions.py` | 160 | Hot keys causing OOM, partition imbalance |
-| `04_type_coercion_null.py` | 210 | Silent NULL creation, division by zero |
+| <sub>`01_closure_serialization.py`</sub> | <sub>527</sub> | <sub>File handles, locks, instance methods, late binding</sub> |
+| <sub>`02_lazy_evaluation.py`</sub> | <sub>665</sub> | <sub>Multiple recomputations, accumulator double-counting</sub> |
+| <sub>`03_data_skew_partitions.py`</sub> | <sub>160</sub> | <sub>Hot keys causing OOM, partition imbalance</sub> |
+| <sub>`04_type_coercion_null.py`</sub> | <sub>210</sub> | <sub>Silent NULL creation, division by zero</sub> |
 
 **Total: 1,562 lines of production anti-patterns + safe alternatives**
 
@@ -2556,15 +2556,15 @@ Use this checklist before deploying PySpark to production:
 
 ### 📊 Performance Impact Summary
 
-| Anti-Pattern | Performance Impact | Severity |
+| <sub>Anti-Pattern</sub> | <sub>Performance Impact</sub> | <sub>Severity</sub> |
 |--------------|-------------------|----------|
-| No caching + multiple actions | 2-10x slower | 🔴 Critical |
-| Data skew (hot keys) | Executor OOM crash | 🔴 Critical |
-| Single partition bottleneck | No parallelism | 🔴 Critical |
-| Too many tiny partitions | 50-200% overhead | 🟠 High |
-| Regular UDF vs Pandas UDF | 10-100x slower | 🟠 High |
-| Accumulator double-count | Wrong results | 🔴 Critical |
-| Type coercion silent loss | Data corruption | 🔴 Critical |
+| <sub>No caching + multiple actions</sub> | <sub>2-10x slower</sub> | <sub>🔴 Critical</sub> |
+| <sub>Data skew (hot keys)</sub> | <sub>Executor OOM crash</sub> | <sub>🔴 Critical</sub> |
+| <sub>Single partition bottleneck</sub> | <sub>No parallelism</sub> | <sub>🔴 Critical</sub> |
+| <sub>Too many tiny partitions</sub> | <sub>50-200% overhead</sub> | <sub>🟠 High</sub> |
+| <sub>Regular UDF vs Pandas UDF</sub> | <sub>10-100x slower</sub> | <sub>🟠 High</sub> |
+| <sub>Accumulator double-count</sub> | <sub>Wrong results</sub> | <sub>🔴 Critical</sub> |
+| <sub>Type coercion silent loss</sub> | <sub>Data corruption</sub> | <sub>🔴 Critical</sub> |
 
 ### 🎓 Learning Structure
 
@@ -2757,16 +2757,16 @@ pyspark-coding/
 
 ### **Directory Purpose & Usage**
 
-| Directory | Purpose | Key Files | Usage |
+| <sub>Directory</sub> | <sub>Purpose</sub> | <sub>Key Files</sub> | <sub>Usage</sub> |
 |-----------|---------|-----------|-------|
-| **src/cluster_computing/** | ⭐ Distributed Spark patterns | `01-09_*.py` | Production cluster examples |
-| **src/etl/** | ETL pipeline templates | `basic_etl_pipeline.py` | Copy for new pipelines |
-| **src/udf_examples/** | ML inference patterns | `07_fraud_detection_udf.py` | Interview examples |
-| **src/pyspark_pytorch/** | ML integration | `01-05_*.py` | PyTorch + PySpark |
-| **tests/** | Quality assurance | `test_*.py` | Run with pytest |
-| **notebooks/** | Interactive development | `*.ipynb` | Jupyter experiments |
-| **docs/** | Technical guides | `*.md` | Architecture & cloud guides |
-| **config/** | Environment settings | `*.yaml` | Deployment configs |
+| <sub>**src/cluster_computing/**</sub> | <sub>⭐ Distributed Spark patterns</sub> | <sub>`01-09_*.py`</sub> | <sub>Production cluster examples</sub> |
+| <sub>**src/etl/**</sub> | <sub>ETL pipeline templates</sub> | <sub>`basic_etl_pipeline.py`</sub> | <sub>Copy for new pipelines</sub> |
+| <sub>**src/udf_examples/**</sub> | <sub>ML inference patterns</sub> | <sub>`07_fraud_detection_udf.py`</sub> | <sub>Interview examples</sub> |
+| <sub>**src/pyspark_pytorch/**</sub> | <sub>ML integration</sub> | <sub>`01-05_*.py`</sub> | <sub>PyTorch + PySpark</sub> |
+| <sub>**tests/**</sub> | <sub>Quality assurance</sub> | <sub>`test_*.py`</sub> | <sub>Run with pytest</sub> |
+| <sub>**notebooks/**</sub> | <sub>Interactive development</sub> | <sub>`*.ipynb`</sub> | <sub>Jupyter experiments</sub> |
+| <sub>**docs/**</sub> | <sub>Technical guides</sub> | <sub>`*.md`</sub> | <sub>Architecture & cloud guides</sub> |
+| <sub>**config/**</sub> | <sub>Environment settings</sub> | <sub>`*.yaml`</sub> | <sub>Deployment configs</sub> |
 
 ---
 
@@ -3364,15 +3364,15 @@ graph TB
 
 ### **Technical Competency Matrix**
 
-| Skill Area | Basic | Intermediate | Advanced | Project Coverage |
+| <sub>Skill Area</sub> | <sub>Basic</sub> | <sub>Intermediate</sub> | <sub>Advanced</sub> | <sub>Project Coverage</sub> |
 |------------|-------|--------------|----------|------------------|
-| **DataFrame Operations** | select, filter, show | groupBy, join, agg | window functions, pivot | ✅ Full |
-| **ETL Design** | Read/write files | Data cleaning, validation | Fault tolerance, monitoring | ✅ Full |
-| **Performance** | Basic caching | Partitioning, broadcast joins | Query optimization, skew handling | ✅ Full |
-| **ML Integration** | Load models | Pandas UDFs, predictions | Distributed training, embeddings | ✅ Full |
-| **Streaming** | Basic streams | Windowing, watermarks | Stateful processing, exactly-once | ✅ Full |
-| **SQL** | Simple queries | Joins, subqueries | Window functions, CTEs | ✅ Full |
-| **Code Quality** | Basic functions | Modular design, error handling | Testing, logging, documentation | ✅ Full |
+| <sub>**DataFrame Operations**</sub> | <sub>select, filter, show</sub> | <sub>groupBy, join, agg</sub> | <sub>window functions, pivot</sub> | <sub>✅ Full</sub> |
+| <sub>**ETL Design**</sub> | <sub>Read/write files</sub> | <sub>Data cleaning, validation</sub> | <sub>Fault tolerance, monitoring</sub> | <sub>✅ Full</sub> |
+| <sub>**Performance**</sub> | <sub>Basic caching</sub> | <sub>Partitioning, broadcast joins</sub> | <sub>Query optimization, skew handling</sub> | <sub>✅ Full</sub> |
+| <sub>**ML Integration**</sub> | <sub>Load models</sub> | <sub>Pandas UDFs, predictions</sub> | <sub>Distributed training, embeddings</sub> | <sub>✅ Full</sub> |
+| <sub>**Streaming**</sub> | <sub>Basic streams</sub> | <sub>Windowing, watermarks</sub> | <sub>Stateful processing, exactly-once</sub> | <sub>✅ Full</sub> |
+| <sub>**SQL**</sub> | <sub>Simple queries</sub> | <sub>Joins, subqueries</sub> | <sub>Window functions, CTEs</sub> | <sub>✅ Full</sub> |
+| <sub>**Code Quality**</sub> | <sub>Basic functions</sub> | <sub>Modular design, error handling</sub> | <sub>Testing, logging, documentation</sub> | <sub>✅ Full</sub> |
 
 ### **Interview Question Categories**
 
@@ -3507,14 +3507,14 @@ benefits = """
 
 ### **Common Interview Mistakes to Avoid**
 
-| Mistake | Why It's Bad | Correct Approach |
+| <sub>Mistake</sub> | <sub>Why It's Bad</sub> | <sub>Correct Approach</sub> |
 |---------|--------------|------------------|
-| Using `collect()` on large data | Crashes driver with OOM | Use `show(n)` or write to storage |
-| Not broadcasting models | Loads model millions of times | Broadcast model to executors once |
-| Ignoring data skew | One slow partition blocks entire job | Salt keys, repartition, increase parallelism |
-| No explicit schema | Slow inference, type errors | Define schema explicitly |
-| Forgetting `.cache()` | Recomputes DF multiple times | Cache frequently-used DataFrames |
-| Using UDFs unnecessarily | Slower than built-in functions | Use Spark SQL functions first |
+| <sub>Using `collect()` on large data</sub> | <sub>Crashes driver with OOM</sub> | <sub>Use `show(n)` or write to storage</sub> |
+| <sub>Not broadcasting models</sub> | <sub>Loads model millions of times</sub> | <sub>Broadcast model to executors once</sub> |
+| <sub>Ignoring data skew</sub> | <sub>One slow partition blocks entire job</sub> | <sub>Salt keys, repartition, increase parallelism</sub> |
+| <sub>No explicit schema</sub> | <sub>Slow inference, type errors</sub> | <sub>Define schema explicitly</sub> |
+| <sub>Forgetting `.cache()`</sub> | <sub>Recomputes DF multiple times</sub> | <sub>Cache frequently-used DataFrames</sub> |
+| <sub>Using UDFs unnecessarily</sub> | <sub>Slower than built-in functions</sub> | <sub>Use Spark SQL functions first</sub> |
 
 ### **Live Coding Practice Scenarios**
 
@@ -3578,12 +3578,12 @@ top_customers = (
 
 ### **Scalability Metrics**
 
-| Dataset Size | Pandas (1 core) | PySpark (10 cores) | PySpark Optimized* | Best Speedup | Memory |
+| <sub>Dataset Size</sub> | <sub>Pandas (1 core)</sub> | <sub>PySpark (10 cores)</sub> | <sub>PySpark Optimized*</sub> | <sub>Best Speedup</sub> | <sub>Memory</sub> |
 |--------------|-----------------|--------------------|--------------------|--------------|---------|
-| **1 GB** | 45 sec | 12 sec | **4 sec** | **11.3x** | 8 GB vs 2 GB |
-| **10 GB** | OOM ❌ | 58 sec | **10 sec** | **∞ (5.8x vs PySpark)** | Crashes vs 5 GB |
-| **100 GB** | Not possible | 8 min | **80 sec** | **∞ (6x vs PySpark)** | N/A vs 15 GB |
-| **1 TB** | Not possible | 1.5 hours | **15 min** | **∞ (6x vs PySpark)** | N/A vs 50 GB |
+| <sub>**1 GB**</sub> | <sub>45 sec</sub> | <sub>12 sec</sub> | <sub>**4 sec**</sub> | <sub>**11.3x**</sub> | <sub>8 GB vs 2 GB</sub> |
+| <sub>**10 GB**</sub> | <sub>OOM ❌</sub> | <sub>58 sec</sub> | <sub>**10 sec**</sub> | <sub>**∞ (5.8x vs PySpark)**</sub> | <sub>Crashes vs 5 GB</sub> |
+| <sub>**100 GB**</sub> | <sub>Not possible</sub> | <sub>8 min</sub> | <sub>**80 sec**</sub> | <sub>**∞ (6x vs PySpark)**</sub> | <sub>N/A vs 15 GB</sub> |
+| <sub>**1 TB**</sub> | <sub>Not possible</sub> | <sub>1.5 hours</sub> | <sub>**15 min**</sub> | <sub>**∞ (6x vs PySpark)**</sub> | <sub>N/A vs 50 GB</sub> |
 
 *Using broadcast joins, AQE, and proper partitioning from cluster computing package
 
@@ -3591,18 +3591,18 @@ top_customers = (
 
 Real performance gains from the cluster computing package on production workloads:
 
-| Optimization | Dataset | Before | After | Speedup | Technique |
+| <sub>Optimization</sub> | <sub>Dataset</sub> | <sub>Before</sub> | <sub>After</sub> | <sub>Speedup</sub> | <sub>Technique</sub> |
 |--------------|---------|--------|-------|---------|-----------|
-| **Broadcast Join** | 100GB fact + 1GB dimension | 180s | **60s** | **3x** | Example 03 |
-| **Salted Skewed Join** | 500GB with 80% skew | 600s | **200s** | **3x** | Example 03 |
-| **HyperLogLog Distinct** | 1TB distinct count | 2400s (40m) | **24s** | **100x** | Example 04 |
-| **Window Functions** | 200GB rolling aggregations | 450s | **90s** | **5x** | Example 04 |
-| **GPU Image Classification** | 1M images (ResNet50) | 9720s (2.7h) | **480s (8m)** | **20x** | Example 06 |
-| **GPU Text Embeddings** | 500K docs (BERT) | 3600s (1h) | **180s (3m)** | **20x** | Example 06 |
-| **CuPy Matrix Operations** | 10K×10K matrix ops | 1200s | **12s** | **100x** | Example 06 |
-| **AQE Shuffle Optimization** | 200GB multi-stage agg | 300s | **50s** | **6x** | Example 08 |
-| **Bucketed Star Schema Join** | 1TB fact + dimensions | 900s | **180s** | **5x** | Example 08 |
-| **Dynamic Allocation** | Variable load pipeline | Fixed 20 exec | **2-20 auto** | **40% cost ↓** | Example 07 |
+| <sub>**Broadcast Join**</sub> | <sub>100GB fact + 1GB dimension</sub> | <sub>180s</sub> | <sub>**60s**</sub> | <sub>**3x**</sub> | <sub>Example 03</sub> |
+| <sub>**Salted Skewed Join**</sub> | <sub>500GB with 80% skew</sub> | <sub>600s</sub> | <sub>**200s**</sub> | <sub>**3x**</sub> | <sub>Example 03</sub> |
+| <sub>**HyperLogLog Distinct**</sub> | <sub>1TB distinct count</sub> | <sub>2400s (40m)</sub> | <sub>**24s**</sub> | <sub>**100x**</sub> | <sub>Example 04</sub> |
+| <sub>**Window Functions**</sub> | <sub>200GB rolling aggregations</sub> | <sub>450s</sub> | <sub>**90s**</sub> | <sub>**5x**</sub> | <sub>Example 04</sub> |
+| <sub>**GPU Image Classification**</sub> | <sub>1M images (ResNet50)</sub> | <sub>9720s (2.7h)</sub> | <sub>**480s (8m)**</sub> | <sub>**20x**</sub> | <sub>Example 06</sub> |
+| <sub>**GPU Text Embeddings**</sub> | <sub>500K docs (BERT)</sub> | <sub>3600s (1h)</sub> | <sub>**180s (3m)**</sub> | <sub>**20x**</sub> | <sub>Example 06</sub> |
+| <sub>**CuPy Matrix Operations**</sub> | <sub>10K×10K matrix ops</sub> | <sub>1200s</sub> | <sub>**12s**</sub> | <sub>**100x**</sub> | <sub>Example 06</sub> |
+| <sub>**AQE Shuffle Optimization**</sub> | <sub>200GB multi-stage agg</sub> | <sub>300s</sub> | <sub>**50s**</sub> | <sub>**6x**</sub> | <sub>Example 08</sub> |
+| <sub>**Bucketed Star Schema Join**</sub> | <sub>1TB fact + dimensions</sub> | <sub>900s</sub> | <sub>**180s**</sub> | <sub>**5x**</sub> | <sub>Example 08</sub> |
+| <sub>**Dynamic Allocation**</sub> | <sub>Variable load pipeline</sub> | <sub>Fixed 20 exec</sub> | <sub>**2-20 auto**</sub> | <sub>**40% cost ↓**</sub> | <sub>Example 07</sub> |
 
 **Key Insight**: Combining multiple optimizations can yield 10-50x total speedup on production workloads.
 
@@ -3640,11 +3640,11 @@ graph TD
 
 **Scenario**: Process 10M daily transactions with ML fraud detection
 
-| Approach | Time | Cost | Scale Limit |
+| <sub>Approach</sub> | <sub>Time</sub> | <sub>Cost</sub> | <sub>Scale Limit</sub> |
 |----------|------|------|-------------|
-| **Pandas + API calls** | 12 hours | $500/day | Single machine |
-| **PySpark + External ML service** | 45 min | $200/day | Network bottleneck |
-| **PySpark + Broadcast UDF (This Project)** | **6 min** | **$50/day** | **Unlimited** |
+| <sub>**Pandas + API calls**</sub> | <sub>12 hours</sub> | <sub>$500/day</sub> | <sub>Single machine</sub> |
+| <sub>**PySpark + External ML service**</sub> | <sub>45 min</sub> | <sub>$200/day</sub> | <sub>Network bottleneck</sub> |
+| <sub>**PySpark + Broadcast UDF (This Project)**</sub> | <sub>**6 min**</sub> | <sub>**$50/day**</sub> | <sub>**Unlimited**</sub> |
 
 **Savings**: 92% faster, 90% cheaper, infinitely scalable
 
@@ -3896,14 +3896,14 @@ df = df.withColumn("prediction", predict_udf(col("features")))
 
 ### **Available Resources**
 
-| Resource Type | Location | Purpose | Duration |
+| <sub>Resource Type</sub> | <sub>Location</sub> | <sub>Purpose</sub> | <sub>Duration</sub> |
 |---------------|----------|---------|----------|
-| **Notebooks** | `notebooks/examples/` | Interactive tutorials | 2-3 hours |
-| **UDF Examples** | `src/udf_examples/` | ML inference patterns | 1-2 hours |
-| **ETL Pipelines** | `src/etl/` | Production templates | 1 hour |
-| **PyTorch Integration** | `src/pyspark_pytorch/` | ML workflows | 2 hours |
-| **Documentation** | `docs/` | Framework comparison | 1 hour |
-| **Tests** | `tests/` | Code quality examples | 30 min |
+| <sub>**Notebooks**</sub> | <sub>`notebooks/examples/`</sub> | <sub>Interactive tutorials</sub> | <sub>2-3 hours</sub> |
+| <sub>**UDF Examples**</sub> | <sub>`src/udf_examples/`</sub> | <sub>ML inference patterns</sub> | <sub>1-2 hours</sub> |
+| <sub>**ETL Pipelines**</sub> | <sub>`src/etl/`</sub> | <sub>Production templates</sub> | <sub>1 hour</sub> |
+| <sub>**PyTorch Integration**</sub> | <sub>`src/pyspark_pytorch/`</sub> | <sub>ML workflows</sub> | <sub>2 hours</sub> |
+| <sub>**Documentation**</sub> | <sub>`docs/`</sub> | <sub>Framework comparison</sub> | <sub>1 hour</sub> |
+| <sub>**Tests**</sub> | <sub>`tests/`</sub> | <sub>Code quality examples</sub> | <sub>30 min</sub> |
 
 ### **Jupyter Notebooks**
 
@@ -4042,13 +4042,13 @@ graph TB
 
 ### **Common Issues**
 
-| Issue | Symptom | Solution |
+| <sub>Issue</sub> | <sub>Symptom</sub> | <sub>Solution</sub> |
 |-------|---------|----------|
-| **Spark Out of Memory** | `OutOfMemoryError` | Increase executor memory: `spark.executor.memory=4g` |
-| **Slow Performance** | Jobs take hours | Check partition count, use broadcast joins |
-| **Python Version Mismatch** | Import errors | Use Python 3.8+ consistently |
-| **Model Loading Fails** | FileNotFoundError | Check model path, use absolute paths |
-| **Jupyter Kernel Dies** | Kernel restart | Reduce data size, increase memory |
+| <sub>**Spark Out of Memory**</sub> | <sub>`OutOfMemoryError`</sub> | <sub>Increase executor memory: `spark.executor.memory=4g`</sub> |
+| <sub>**Slow Performance**</sub> | <sub>Jobs take hours</sub> | <sub>Check partition count, use broadcast joins</sub> |
+| <sub>**Python Version Mismatch**</sub> | <sub>Import errors</sub> | <sub>Use Python 3.8+ consistently</sub> |
+| <sub>**Model Loading Fails**</sub> | <sub>FileNotFoundError</sub> | <sub>Check model path, use absolute paths</sub> |
+| <sub>**Jupyter Kernel Dies**</sub> | <sub>Kernel restart</sub> | <sub>Reduce data size, increase memory</sub> |
 
 ### **Getting Help**
 
@@ -4062,25 +4062,25 @@ graph TB
 
 ## 📊 Project Statistics
 
-| Metric | Count | Description |
+| <sub>Metric</sub> | <sub>Count</sub> | <sub>Description</sub> |
 |--------|-------|-------------|
-| **Total Code Lines** | **22,400+** | Production-grade code (8,000+ new in v2.0!) |
-| **v2.0 New Code** | **8,000+** | Real, executable implementations (80%+ runnable) |
-| **Python Files** | **60+** | Source code modules (17 enhanced in v2.0) |
-| **Legacy Examples** | **5** | COBOL, FORTRAN, PL/I, RPG, Ada modernization |
-| **Working Algorithms** | **40+** | Monte Carlo, FFT, ODE solvers, ML pipelines |
-| **Jupyter Notebooks** | 10+ | Interactive tutorials |
-| **UDF Examples** | 7 | Production ML patterns |
-| **Cluster Computing Examples** | **15** | Distributed Spark patterns + architecture |
-| **RDD Operations Examples** | **6** | Low-level RDD transformations & actions |
-| **v2.0 Features Complete** | **5/5** | Delta Lake, MLflow, Airflow, Kafka, Monitoring |
-| **Test Cases** | 50+ | Unit + integration tests |
-| **Documentation Pages** | **24** | Technical guides + master curriculum |
-| **Master Curriculum Guide** | **1 (47 KB)** | Complete PySpark reference |
-| **Dataset Samples** | 4 | Ready-to-use data |
-| **Topics Covered** | **120+** | All major PySpark domains |
-| **Performance Optimizations** | **15+** | GPU, shuffle, memory tuning |
-| **Proven Speedups** | **10-100x** | Real benchmarks included |
+| <sub>**Total Code Lines**</sub> | <sub>**22,400+**</sub> | <sub>Production-grade code (8,000+ new in v2.0!)</sub> |
+| <sub>**v2.0 New Code**</sub> | <sub>**8,000+**</sub> | <sub>Real, executable implementations (80%+ runnable)</sub> |
+| <sub>**Python Files**</sub> | <sub>**60+**</sub> | <sub>Source code modules (17 enhanced in v2.0)</sub> |
+| <sub>**Legacy Examples**</sub> | <sub>**5**</sub> | <sub>COBOL, FORTRAN, PL/I, RPG, Ada modernization</sub> |
+| <sub>**Working Algorithms**</sub> | <sub>**40+**</sub> | <sub>Monte Carlo, FFT, ODE solvers, ML pipelines</sub> |
+| <sub>**Jupyter Notebooks**</sub> | <sub>10+</sub> | <sub>Interactive tutorials</sub> |
+| <sub>**UDF Examples**</sub> | <sub>7</sub> | <sub>Production ML patterns</sub> |
+| <sub>**Cluster Computing Examples**</sub> | <sub>**15**</sub> | <sub>Distributed Spark patterns + architecture</sub> |
+| <sub>**RDD Operations Examples**</sub> | <sub>**6**</sub> | <sub>Low-level RDD transformations & actions</sub> |
+| <sub>**v2.0 Features Complete**</sub> | <sub>**5/5**</sub> | <sub>Delta Lake, MLflow, Airflow, Kafka, Monitoring</sub> |
+| <sub>**Test Cases**</sub> | <sub>50+</sub> | <sub>Unit + integration tests</sub> |
+| <sub>**Documentation Pages**</sub> | <sub>**24**</sub> | <sub>Technical guides + master curriculum</sub> |
+| <sub>**Master Curriculum Guide**</sub> | <sub>**1 (47 KB)**</sub> | <sub>Complete PySpark reference</sub> |
+| <sub>**Dataset Samples**</sub> | <sub>4</sub> | <sub>Ready-to-use data</sub> |
+| <sub>**Topics Covered**</sub> | <sub>**120+**</sub> | <sub>All major PySpark domains</sub> |
+| <sub>**Performance Optimizations**</sub> | <sub>**15+**</sub> | <sub>GPU, shuffle, memory tuning</sub> |
+| <sub>**Proven Speedups**</sub> | <sub>**10-100x**</sub> | <sub>Real benchmarks included</sub> |
 
 ---
 
