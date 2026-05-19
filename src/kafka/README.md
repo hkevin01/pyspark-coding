@@ -187,13 +187,13 @@ kafka_stream = spark.readStream \
 
 ### Key Options Explained
 
-| Option | Values | Purpose |
+| <sub>Option</sub> | <sub>Values</sub> | <sub>Purpose</sub> |
 |--------|--------|---------|
-| `startingOffsets` | `earliest`, `latest`, `{"topic":{"0":23}}` | Where to start reading |
-| `failOnDataLoss` | `true`, `false` | Handle missing offsets |
-| `maxOffsetsPerTrigger` | Integer | Rate limiting (records per batch) |
-| `minPartitions` | Integer | Spark parallelism |
-| `kafka.group.id` | String | Consumer group identifier |
+| <sub>`startingOffsets`</sub> | <sub>`earliest`, `latest`, `{"topic":{"0":23}}`</sub> | <sub>Where to start reading</sub> |
+| <sub>`failOnDataLoss`</sub> | <sub>`true`, `false`</sub> | <sub>Handle missing offsets</sub> |
+| <sub>`maxOffsetsPerTrigger`</sub> | <sub>Integer</sub> | <sub>Rate limiting (records per batch)</sub> |
+| <sub>`minPartitions`</sub> | <sub>Integer</sub> | <sub>Spark parallelism</sub> |
+| <sub>`kafka.group.id`</sub> | <sub>String</sub> | <sub>Consumer group identifier</sub> |
 
 ### Writing Back to Kafka
 ```python
